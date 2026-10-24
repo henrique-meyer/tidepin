@@ -10,7 +10,7 @@ Designed & built by Henrique Meyer · [Source on GitHub](https://github.com/henr
 
 Open the main page and press **Start display** to use a saved station. A first visit offers browser location or **Set location** for the map picker. The selected coordinates resolve to the nearest NOAA prediction station; the saved selection is reused without another browser-location request. Returning from the picker opens the display directly once.
 
-The shell shows the chosen station and its controls, with a separate mount for the upcoming tide graph. Its session-ended hook returns to Start with **Your session has ended. Press Start display to continue.** Session timing is a separate feature. The NOAA credit, navigation disclaimer and source credit remain visible on both screens.
+The shell shows the chosen station and its controls, with a separate mount for the upcoming tide graph. The footer shows **Session expires: H:mm** during a display session. `SESSION_LIMIT_MINUTES` accepts 1–120 minutes and defaults to 120. Expiry returns to Start with **Your session has ended. Press Start display to continue.** Press Start again for a fresh session with the same station. The NOAA credit, navigation disclaimer and source credit remain visible on both screens. The client timer stops ordinary graph work through the session-ended event; it is a cooperative demo limit rather than a server quota. See [ADR 0003](docs/decisions/0003-demo-session.md).
 
 ## Run locally
 

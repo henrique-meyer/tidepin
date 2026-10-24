@@ -48,4 +48,7 @@ describe('runtime configuration', () => {
   it.each(['', '0', '-1', '121', '1.5', 'NaN'])('rejects invalid session limits %j', (SESSION_LIMIT_MINUTES) => {
     expect(() => loadConfig({ SESSION_LIMIT_MINUTES })).toThrow('SESSION_LIMIT_MINUTES');
   });
+  it.each(['1', '120'])('accepts the bounded session endpoint %s', (SESSION_LIMIT_MINUTES) => {
+    expect(loadConfig({ SESSION_LIMIT_MINUTES }).sessionLimitMinutes).toBe(Number(SESSION_LIMIT_MINUTES));
+  });
 });

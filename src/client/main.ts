@@ -6,6 +6,10 @@ import { readDisplaySettings } from './display-settings.js';
 import { currentPosition } from './geolocation.js';
 import { readLocation, saveLocation, takeReturnToDisplay } from './location-settings.js';
 import { mountStartScreen } from './start-screen.js';
+import { setupDisplaySession } from './session.js';
+
+// Session expiry must run before graph visibility/polling listeners resume work.
+setupDisplaySession();
 
 const main = document.querySelector('main');
 if (!main) throw new Error('The display requires a main element.');
