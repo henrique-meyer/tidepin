@@ -52,6 +52,21 @@ Set `githubFederationSubject` to the **exact** subject GitHub emits for the `pro
 
 After DNS verification and a free managed certificate have been issued, retain `customDomainName` and `customDomainCertificateId` in private parameters. Both must be set to preserve the HTTPS binding on subsequent Bicep deployments; leaving either empty omits it. The template does not create a certificate or DNS records.
 
+### Custom hostname and managed certificate
+
+DNS changes are performed by the owner of the zone. For a subdomain, verify a **direct** CNAME to the app's generated address and the TXT record at `asuid.<subdomain>` using the actual app's `properties.customDomainVerificationId`. An existing parent-zone `asuid` record may belong to another service and must be preserved. Check existing CAA policy read-only; when the zone has CAA restrictions it must permit `digicert.com` for the free managed certificate. Do not change DNS or replace a verification record as part of certificate binding.
+
+After the owner authorizes the operation, validate the hostname through the provider before requesting a certificate:
+
+```sh
+az containerapp hostname add --subscription <subscription-id> --resource-group <resource-group> --name <app> --hostname <hostname> --output none
+az containerapp hostname bind --subscription <subscription-id> --resource-group <resource-group> --name <app> --environment <environment> --hostname <hostname> --validation-method CNAME --output none
+```
+
+The second command finds or creates a free managed certificate when no uploaded certificate is supplied. A rejected DNS validation is an actionable blocker: preserve the provider response privately and wait for corrected DNS instead of repeatedly sending the same request. During issuance, bounded requests to the default health endpoint can keep the app reachable without permanently changing its zero-to-one replica policy.
+
+Read back the successful certificate and secured hostname, then record the hostname, certificate resource ID and HTTPS base URL only in the private parameters. Refresh `containerImage` from the running app before the Bicep apply so domain setup cannot roll back a newer deployment. Preview the approved resource scope, redeploy those parameters, read back the retained binding, and verify `https://<hostname>/health` returns the exact process-health response while `http://<hostname>/health` redirects to HTTPS. The shared dashboard also links the referenced managed certificate; its issuance remains outside the template. Keep actual records, identifiers, endpoints and issuance evidence in the private runbook. See the [current managed-certificate requirements](https://learn.microsoft.com/azure/container-apps/custom-domains-managed-certificates).
+
 ## Deployment workflow
 
 `.github/workflows/deploy.yml` runs on pushes to `main` and can be dispatched manually for `main`. A serial concurrency group prevents overlapping rollouts. It publishes the public repository's image to GHCR with an immutable `sha-<commit>` tag and the convenience `prod` tag. The first image run works without Azure secrets; missing production configuration explicitly skips the rollout.
