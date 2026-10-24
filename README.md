@@ -1,12 +1,18 @@
 # Tidepin
 
-A web demo for viewing NOAA CO-OPS tide predictions. The initial scaffold contains a Tidepin logo placeholder and a process-health endpoint; the tide graph and application screens follow in separate tasks.
+A web demo for viewing NOAA CO-OPS tide predictions. The Start display flow, location picker and shared display controls are implemented; tide graph rendering follows in its own task.
 
 [Tide predictions: NOAA CO-OPS (tidesandcurrents.noaa.gov)](https://tidesandcurrents.noaa.gov)
 
 **Predictions only. Not for navigation.**
 
 Designed & built by Henrique Meyer · [Source on GitHub](https://github.com/henrique-meyer/tidepin)
+
+## Start the display
+
+Open the main page and press **Start display** to use a saved station. A first visit offers browser location or **Set location** for the map picker. The selected coordinates resolve to the nearest NOAA prediction station; the saved selection is reused without another browser-location request. Returning from the picker opens the display directly once.
+
+The shell shows the chosen station and its controls, with a separate mount for the upcoming tide graph. Its session-ended hook returns to Start with **Your session has ended. Press Start display to continue.** Session timing is a separate feature. The NOAA credit, navigation disclaimer and source credit remain visible on both screens.
 
 ## Run locally
 
@@ -55,7 +61,7 @@ The two-stage Node 24 image runs as the non-root `node` user and exposes port 80
 
 See the [system design](docs/system-design.md), [implementation plan](docs/plan.md), [infrastructure guide](infra/README.md), and the decisions for [hosting](docs/decisions/0001-hosting.md) and [the stack](docs/decisions/0002-stack.md). Pull-request CI verifies the app, Bicep templates and a running non-root container. Parameterized infrastructure includes a shared resource dashboard; main-branch deployment publishes a container and updates the app through OIDC. Real environment values, private notes, and secrets must stay outside this public repository.
 
-The page footer displays the NOAA source link, the navigation disclaimer on its own line and the personal/source credit above. Its external links open in a new tab with `rel="noopener"`. The footer wraps on narrow screens and uses the Tidepin footnote and color tokens; the current page content remains a placeholder for the later application screens.
+The page footer displays the NOAA source link, the navigation disclaimer on its own line and the personal/source credit above. Its external links open in a new tab with `rel="noopener"`. The footer wraps on narrow screens and uses the Tidepin footnote and color tokens on both the Start and display screens.
 
 ## License
 

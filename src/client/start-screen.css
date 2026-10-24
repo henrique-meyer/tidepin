@@ -1,0 +1,95 @@
+.display-page {
+  position: relative;
+  width: 100%;
+  align-items: stretch;
+}
+
+.start-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.start-screen[hidden],
+.tide-display[hidden],
+.display-topbar[hidden] {
+  display: none;
+}
+
+.start-mark {
+  width: calc(var(--space-8) + var(--space-8));
+  height: auto;
+}
+
+.start-button,
+.start-secondary {
+  cursor: pointer;
+  max-width: 100%;
+  border: 0;
+  border-radius: var(--radius-button);
+  padding: var(--space-3) var(--space-6);
+  font-weight: var(--font-body-emphasis-weight);
+}
+
+.start-button {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+}
+
+.start-message {
+  min-height: var(--font-body-line-height);
+  color: var(--color-text-secondary);
+}
+
+.start-choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.start-secondary {
+  color: var(--color-accent-text);
+  background: var(--color-surface-sunken);
+}
+
+.start-secondary:disabled {
+  cursor: default;
+  color: var(--color-disabled-content);
+  background: var(--color-disabled-container);
+}
+
+.start-button:focus-visible,
+.start-secondary:focus-visible {
+  outline: var(--space-1) solid var(--color-accent-text);
+  outline-offset: var(--space-1);
+}
+
+.tide-display {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
+}
+
+.tide-display h2 {
+  margin: 0;
+  font-size: var(--font-station-title-size);
+  line-height: var(--font-station-title-line-height);
+  font-weight: var(--font-station-title-weight);
+}
+
+/* Programmatic heading focus announces the new display; it is not an interactive control. */
+.tide-display h2:focus {
+  outline: none;
+}
