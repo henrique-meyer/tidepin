@@ -1,6 +1,6 @@
 # Tidepin
 
-A web demo for viewing NOAA CO-OPS tide predictions. The Start display flow, location picker and shared display controls are implemented; tide graph rendering follows in its own task.
+A web demo for viewing NOAA CO-OPS tide predictions. The Start display flow, location picker, shared display controls and station-local daily tide graph are implemented.
 
 [Tide predictions: NOAA CO-OPS (tidesandcurrents.noaa.gov)](https://tidesandcurrents.noaa.gov). **Not for navigation.**
 
@@ -10,7 +10,9 @@ Designed & built by Henrique Meyer · [Source on GitHub](https://github.com/henr
 
 Open the main page and press **Start display** to use a saved station. A first visit offers browser location or **Set location** for the map picker. The selected coordinates resolve to the nearest NOAA prediction station; the saved selection is reused without another browser-location request. Returning from the picker opens the display directly once.
 
-The shell shows the chosen station and its controls, with a separate mount for the upcoming tide graph. The footer shows **Session expires: H:mm** during a display session. `SESSION_LIMIT_MINUTES` accepts 1–120 minutes and defaults to 120. Expiry returns to Start with **Your session has ended. Press Start display to continue.** Press Start again for a fresh session with the same station. The NOAA credit, navigation disclaimer and source credit remain visible on both screens. The client timer stops ordinary graph work through the session-ended event; it is a cooperative demo limit rather than a server quota. See [ADR 0003](docs/decisions/0003-demo-session.md).
+The display shows the chosen station, current predicted height, next high and low, a daily curve and a chronological high/low table. All heights switch together between feet and meters, and times use the station's time zone with the selected 12/24-hour clock. The graph refreshes once a minute while the display is visible; hidden or ended sessions stop requesting data.
+
+The footer shows **Session expires: H:mm** during a display session. `SESSION_LIMIT_MINUTES` accepts 1–120 minutes and defaults to 120. Expiry returns to Start with **Your session has ended. Press Start display to continue.** Press Start again for a fresh session with the same station. The NOAA credit, navigation disclaimer and source credit remain visible on both screens. The client timer stops ordinary graph work through the session-ended event; it is a cooperative demo limit rather than a server quota. See [ADR 0003](docs/decisions/0003-demo-session.md).
 
 ## Run locally
 
@@ -55,7 +57,7 @@ The two-stage Node 24 image runs as the non-root `node` user and exposes port 80
 
 ## Project layout
 
-`src/server` holds Fastify and the NOAA predictions client, `src/client` holds the Vite page, `src/shared/tides.ts` holds pure chart, interpolation and station-local time computations, `test` holds Vitest tests and frozen fixtures, and `assets` holds original brand files. The prediction modules are ready for the later browser/API integration. The layout follows the [BoltClock demo](https://github.com/henrique-meyer/boltclock).
+`src/server` holds Fastify and the NOAA predictions client, `src/client` holds the Vite page, `src/shared/tides.ts` holds pure chart, interpolation and station-local time computations, `test` holds Vitest tests and frozen fixtures, and `assets` holds original brand files. The server computes the current station-local day and serves canonical predictions through `/api/tides/:id`; the browser never requests NOAA directly. The layout follows the [BoltClock demo](https://github.com/henrique-meyer/boltclock).
 
 See the [system design](docs/system-design.md), [implementation plan](docs/plan.md), [infrastructure guide](infra/README.md), and the decisions for [hosting](docs/decisions/0001-hosting.md) and [the stack](docs/decisions/0002-stack.md). Pull-request CI verifies the app, Bicep templates and a running non-root container. Parameterized infrastructure includes a shared resource dashboard; main-branch deployment publishes a container and updates the app through OIDC. Real environment values, private notes, and secrets must stay outside this public repository.
 

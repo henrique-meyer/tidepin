@@ -99,7 +99,8 @@ describe('NOAA predictions client', () => {
     expect(result.curve.status).toBe('saved');
     expect(result.curve.error?.code).toBe('invalidProduct');
     expect(result.curve.data).toEqual([]);
-    expect(result.events.status).toBe('fresh');
+    expect(result.events.status).toBe('saved');
+    expect(result.events.error?.code).toBe('throttled');
   });
   it('returns typed network errors and uses cached coverage offline without throwing', async () => {
     const first = harness();
@@ -122,10 +123,10 @@ describe('NOAA predictions client', () => {
     advance(60);
     const retry = await client.getPredictions({ ...request, forceRefresh: true });
     expect(retry.curve.error?.code).toBe('throttled');
-    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher).toHaveBeenCalledTimes(1);
     advance(61);
     await client.getPredictions(request);
-    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(fetcher).toHaveBeenCalledTimes(2);
   });
   it('allows high/low-only stations without inventing a curve', async () => {
     const { client, fetcher } = harness();

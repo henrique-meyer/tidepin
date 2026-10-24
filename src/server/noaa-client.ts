@@ -1,31 +1,14 @@
+import type { NoaaError, PredictionProduct, Predictions } from '../shared/tide-response.js';
+export type { NoaaError, PredictionProduct, Predictions } from '../shared/tide-response.js';
+import { createNoaaScheduler, sharedNoaaScheduler, NoaaBackoffError, type NoaaScheduler } from './noaa-scheduler.js';
 import { normalizePredictions, validTimeZone, type TideEvent, type TideSample, type TideWindow } from '../shared/tides.js';
 import { validStationId } from '../shared/stations.js';
 
-export interface NoaaError {
-  code: 'invalidRequest' | 'timeZoneUnavailable' | 'http' | 'network' | 'invalidProduct' | 'throttled' | 'curveUnavailable';
-  message: string;
-  retryAt?: number;
-}
-export interface PredictionProduct<T> {
-  status: 'fresh' | 'saved' | 'error' | 'unsupported';
-  data: T[] | null;
-  fetchedAt: number | null;
-  coverage: TideWindow;
-  error: NoaaError | null;
-}
 export interface PredictionRequest extends TideWindow {
   stationId: string;
   timeZoneId: string;
   curveSupported?: boolean;
   forceRefresh?: boolean;
-}
-export interface Predictions {
-  stationId: string;
-  timeZoneId: string;
-  datum: 'MLLW';
-  units: 'metric';
-  curve: PredictionProduct<TideSample>;
-  events: PredictionProduct<TideEvent>;
 }
 interface CacheEntry<T> extends TideWindow { data: T[]; fetchedAt: number }
 interface Attempt { at: number; retryAt: number }
@@ -33,6 +16,7 @@ export interface NoaaClientOptions {
   fetch?: typeof globalThis.fetch;
   now?: () => number;
   sleep?: (milliseconds: number) => Promise<void>;
+  scheduler?: NoaaScheduler;
   cacheTtlSeconds?: number;
   maxCacheEntries?: number;
 }
@@ -61,17 +45,14 @@ function snapshotProduct<T extends TideSample>(product: PredictionProduct<T>): P
 
 /** In-memory predictions only. No credentials, observations, addresses or search text. */
 export function createNoaaClient(options: NoaaClientOptions = {}) {
-  const fetcher = options.fetch ?? globalThis.fetch;
+  const scheduler = options.scheduler ?? (options.fetch || options.now || options.sleep ? createNoaaScheduler(options) : sharedNoaaScheduler);
   const now = options.now ?? (() => Date.now() / 1000);
-  const sleep = options.sleep ?? (milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)));
   const ttl = options.cacheTtlSeconds ?? defaultTtl;
   const maxEntries = options.maxCacheEntries ?? 100;
   if (!Number.isFinite(ttl) || ttl <= 0 || ttl > defaultTtl || !Number.isInteger(maxEntries) || maxEntries < 1) throw new RangeError('Invalid cache settings.');
   const cache = new Map<string, CacheEntry<TideSample | TideEvent>>();
   const attempts = new Map<string, Attempt>();
   const inFlight = new Map<string, Promise<PredictionProduct<TideSample | TideEvent>>>();
-  let queue: Promise<unknown> = Promise.resolve();
-  let lastRequestStart = -Infinity;
 
   function save(key: string, entry: CacheEntry<TideSample | TideEvent>) {
     cache.delete(key);
@@ -83,21 +64,6 @@ export function createNoaaClient(options: NoaaClientOptions = {}) {
     attempts.delete(key);
     attempts.set(key, attempt);
     while (attempts.size > maxEntries * 2) attempts.delete(attempts.keys().next().value!);
-  }
-
-  function pacedFetch(url: URL): Promise<{ response: Response; payload: unknown; jsonOk: boolean }> {
-    const operation = queue.then(async () => {
-      const delay = Math.max(0, lastRequestStart + 1 - now());
-      if (delay > 0) await sleep(delay * 1000);
-      lastRequestStart = now();
-      const response = await fetcher(url, { signal: AbortSignal.timeout(15000), headers: { Accept: 'application/json' } });
-      // Consume the body inside the queue: two NOAA downloads never overlap.
-      if (!response.ok) { await response.arrayBuffer(); return { response, payload: null, jsonOk: true }; }
-      try { return { response, payload: await response.json() as unknown, jsonOk: true }; }
-      catch { return { response, payload: null, jsonOk: false }; }
-    });
-    queue = operation.catch(() => undefined);
-    return operation;
   }
 
   async function loadProduct(request: PredictionRequest, interval: '6' | 'hilo'): Promise<PredictionProduct<TideSample | TideEvent>> {
@@ -130,7 +96,7 @@ export function createNoaaClient(options: NoaaClientOptions = {}) {
         const url = new URL(endpoint);
         url.search = new URLSearchParams({ product: 'predictions', application: 'Tidepin', datum: 'MLLW', units: 'metric', time_zone: 'gmt', format: 'json', interval, station: request.stationId, begin_date: requestDate(start), end_date: requestDate(end) }).toString();
         try {
-          const { response, payload, jsonOk } = await pacedFetch(url);
+          const { response, payload, jsonOk } = await scheduler.download(url);
           if (!response.ok) {
             const retryHeader = response.headers.get('retry-after');
             let retryAt = now() + 60;
@@ -144,9 +110,10 @@ export function createNoaaClient(options: NoaaClientOptions = {}) {
           }
           if (!jsonOk) { failure = { code: 'invalidProduct', message: 'NOAA returned malformed JSON.', retryAt: now() + 60 }; break; }
           const normalized = interval === '6' ? normalizePredictions(payload, '6') : normalizePredictions(payload, 'hilo');
-          if (!normalized.ok) { failure = { code: 'invalidProduct', message: normalized.message, retryAt: now() + 60 }; break; }
+          if (!normalized.ok) { failure = { code: 'invalidProduct', message: normalized.message, retryAt: now() + 60 }; scheduler.deferUntil(failure.retryAt!); break; }
           collected.push(...normalized.data);
-        } catch {
+        } catch (error) {
+          if (error instanceof NoaaBackoffError) { failure = { code: 'throttled', message: error.message, retryAt: error.retryAt }; break; }
           failure = { code: 'network', message: 'NOAA predictions are unavailable. Saved predictions may still be used.', retryAt: now() + 60 };
           break;
         }

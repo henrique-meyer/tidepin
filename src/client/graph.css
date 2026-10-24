@@ -1,0 +1,67 @@
+.display-page[data-display-state="display"] { justify-content: flex-start; padding: var(--space-4) var(--space-6); }
+.tide-display { justify-content: flex-start; align-items: stretch; text-align: left; }
+.tide-display > h2 { text-align: left; }
+.tide-graph { width: 100%; min-width: 0; display: grid; gap: var(--space-3); }
+.graph-meta, .graph-footnote { color: var(--color-text-secondary); font-size: var(--font-footnote-size); line-height: var(--font-footnote-line-height); }
+.graph-meta { margin-top: calc(-1 * var(--space-2)); }
+.graph-status:empty { display: none; }
+.graph-status { padding: var(--space-3); border-radius: var(--radius-card); background: var(--color-banner-container); color: var(--color-on-banner); font-size: var(--font-footnote-size); }
+.graph-card { margin: 0; padding: var(--space-4); background: var(--color-surface); border: 1px solid var(--color-separator); border-radius: var(--radius-card); }
+.graph-card h3 { margin: 0 0 var(--space-1); font-size: var(--font-footnote-size); line-height: var(--font-footnote-line-height); font-weight: var(--font-body-emphasis-weight); color: var(--color-text-secondary); }
+.graph-current { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.graph-current-value { font-size: var(--font-value-large-size); line-height: var(--font-value-large-line-height); font-weight: var(--font-value-large-weight); font-variant-numeric: tabular-nums; }
+.graph-current-context { text-align: right; font-size: var(--font-secondary-size); line-height: var(--font-secondary-line-height); }
+.graph-events { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.graph-event-time { font-size: var(--font-value-size); line-height: var(--font-value-line-height); font-weight: var(--font-value-weight); font-variant-numeric: tabular-nums; }
+.graph-event > p + p { margin-top: var(--space-1); }
+.graph-chart { padding: var(--space-3); }
+.graph-chart svg { display: block; width: 100%; overflow: visible; }
+.graph-chart figcaption { text-align: right; margin-top: var(--space-1); }
+.graph-axis { fill: var(--color-text-secondary); font: 11px system-ui, sans-serif; }
+.graph-event-label { fill: var(--color-text-primary); font: 600 11px system-ui, sans-serif; }
+.graph-grid { stroke: var(--chart-grid); stroke-width: 1; }
+.graph-zero { stroke: var(--color-border); stroke-width: 1; }
+.graph-curve { stroke: var(--chart-curve); stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.graph-fill { fill: var(--chart-fill); }
+.graph-high { fill: var(--chart-curve); stroke: var(--color-surface); stroke-width: 2; }
+.graph-low { fill: var(--color-surface); stroke: var(--chart-curve); stroke-width: 2; }
+.graph-now-line { stroke: var(--chart-now-line); stroke-width: 2; }
+.graph-now-dot { fill: var(--chart-now-line); stroke: var(--color-surface); stroke-width: 2; }
+.graph-now-pill { fill: var(--chart-now-line); }
+.graph-now-label { fill: var(--color-on-accent); font: 700 10px system-ui, sans-serif; }
+@media (prefers-color-scheme: light) { .graph-now-label { fill: var(--color-surface); } }
+.graph-table-section h3 { margin: var(--space-2) 0 var(--space-2); font-size: var(--font-sheet-title-size); }
+.graph-table-scroll { max-width: 100%; }
+.graph-table-section table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: var(--font-secondary-size); line-height: var(--font-secondary-line-height); table-layout: fixed; background: var(--color-surface); border: 1px solid var(--color-separator); border-radius: var(--radius-card); }
+.graph-table-section th, .graph-table-section td { padding: var(--space-3); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.graph-table-section thead { color: var(--color-text-secondary); font-size: var(--font-footnote-size); }
+.graph-table-section tr + tr > *, .graph-table-section tbody tr:first-child > * { border-top: 1px solid var(--color-separator); }
+.graph-table-section th:first-child { width: 22%; }
+.graph-table-section th:last-child { width: 23%; }
+.graph-table-section .graph-table-height { text-align: right; font-variant-numeric: tabular-nums; }
+.graph-state { min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); text-align: center; }
+.graph-refresh { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.graph-retry { padding: var(--space-2) var(--space-3); color: var(--color-accent-text); border: 1px solid var(--color-separator); border-radius: var(--radius-button); background: var(--color-surface); cursor: pointer; font-size: var(--font-footnote-size); }
+.graph-retry:disabled { cursor: wait; opacity: .65; }
+.graph-spinner { width: 28px; height: 28px; border: 3px solid var(--color-separator); border-top-color: var(--color-primary); border-radius: 50%; animation: graph-spin 1s linear infinite; }
+.graph-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@keyframes graph-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .graph-spinner { animation: none; } }
+@media (max-width: 480px) {
+  .display-page[data-display-state="display"] { padding: var(--space-3); }
+  .graph-card { padding: var(--space-3); }
+  .graph-current { align-items: flex-start; }
+  .graph-current-context { max-width: 46%; }
+  .graph-table-section th, .graph-table-section td { padding: var(--space-2); font-size: var(--font-footnote-size); }
+}
+@media (min-width: 1000px) {
+  .tide-graph { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+  .graph-meta, .graph-status, .graph-chart, .graph-table-section, .graph-refresh { grid-column: 1 / -1; }
+  .graph-meta { grid-row: 1; }
+  .graph-status { grid-row: 2; }
+  .graph-current, .graph-events { grid-row: 3; }
+  .graph-chart { grid-row: 4; }
+  .graph-table-section { grid-row: 5; }
+  .graph-refresh { grid-row: 6; }
+  .graph-table-section table { font-size: var(--font-secondary-size); }
+}

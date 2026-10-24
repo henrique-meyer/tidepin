@@ -6,6 +6,7 @@ import { readDisplaySettings } from './display-settings.js';
 import { currentPosition } from './geolocation.js';
 import { readLocation, saveLocation, takeReturnToDisplay } from './location-settings.js';
 import { mountStartScreen } from './start-screen.js';
+import { setupTideGraph } from './graph.js';
 import { setupDisplaySession } from './session.js';
 
 // Session expiry must run before graph visibility/polling listeners resume work.
@@ -124,6 +125,12 @@ window.addEventListener('tidepin:session-ended', () => {
 });
 
 // A saved picker result returns to the main display; an ordinary reload still requires Start.
+setupTideGraph({
+  onStation(name, stationId) {
+    const selected = controller.view().location;
+    if (selected?.stationId === stationId && selected.stationName !== name) controller.updateLocationName(stationId, name);
+  },
+});
 if (takeReturnToDisplay() && savedLocation) controller.start();
 void controller.initialize();
 
