@@ -1,0 +1,36 @@
+using 'main.bicep'
+
+// Safe examples only. Keep the real parameter file in the private notes repository.
+param location = 'eastus'
+param logAnalyticsName = '<workspace>'
+param environmentName = '<environment>'
+param containerAppName = '<app>'
+param containerName = 'app'
+
+// Bootstrap without an app, then enable it after publishing a public image.
+param deployApp = false
+param containerImage = ''
+param targetPort = 8080
+param healthPath = '/health'
+param sessionLimitMinutes = 120
+param googleMapsApiKey = ''
+param publicBaseUrl = ''
+
+// Preserve these private values after hostname verification and certificate issuance.
+param customDomainName = ''
+param customDomainCertificateId = ''
+
+// Use the exact OIDC subject, including immutable owner/repository IDs when enabled.
+param deployIdentityName = '<deploy-identity>'
+param githubFederationSubject = ''
+param federationCredentialName = 'github-production'
+
+// Optional cost notification. A budget is not a hard spending limit.
+param budgetAmount = 0
+param budgetName = '<budget>'
+param budgetContactEmails = []
+param budgetStartDate = ''
+
+param tags = {
+  project: 'tidepin'
+}

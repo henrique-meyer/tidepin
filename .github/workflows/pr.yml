@@ -1,0 +1,67 @@
+name: pr
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Install Bicep
+        run: |
+          curl -fsSL -o bicep https://github.com/Azure/bicep/releases/download/v0.48.1/bicep-linux-x64
+          chmod +x bicep
+          sudo mv bicep /usr/local/bin/bicep
+          bicep --version
+
+      # Compile the public example without credentials or a deployment.
+      - name: Build Bicep and the example parameters
+        run: |
+          bicep build infra/main.bicep --stdout > /dev/null
+          cp infra/main.bicepparam.example infra/ci.bicepparam
+          bicep build-params infra/ci.bicepparam --stdout > /dev/null
+
+      - name: Build the image
+        run: docker build --tag tidepin:pr .
+
+      # Validate the production image's health contract and effective UID.
+      - name: Run the image and check /health
+        run: |
+          docker run --detach --name tidepin --publish 127.0.0.1:8080:8080 tidepin:pr
+          trap 'docker logs tidepin; docker rm --force tidepin > /dev/null' EXIT
+          curl -fsS --connect-timeout 5 --max-time 10 --retry 10 --retry-delay 1 --retry-all-errors http://localhost:8080/health | jq -e '. == {"status":"ok"}'
+          uid="$(docker exec tidepin id -u)"
+          test "$uid" -gt 0
