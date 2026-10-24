@@ -44,6 +44,41 @@ describe('NOAA predictions client', () => {
     await client.getPredictions({ ...request, start: request.start + 3600, end: request.end - 3600 });
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
+  it('isolates caller-owned arrays, rows, coverage and errors from cache and coalesced callers', async () => {
+    let clock = request.start;
+    const fetcher = vi.fn(async (input: RequestInfo | URL) => {
+      const interval = new URL(String(input)).searchParams.get('interval');
+      return new Response(JSON.stringify({ predictions: [{ t: '2026-01-01 00:00', v: '1', ...(interval === 'hilo' ? { type: 'H' } : {}) }] }));
+    });
+    const client = createNoaaClient({ fetch: fetcher, now: () => clock, sleep: async milliseconds => { clock += milliseconds / 1000; } });
+    const [first, other] = await Promise.all([client.getPredictions(request), client.getPredictions(request)]);
+    const originalCoverage = { ...other.curve.coverage };
+    first.curve.data![0]!.heightMeters = 999;
+    first.curve.data!.length = 0;
+    first.curve.coverage.start = -1;
+    first.events.data![0]!.type = 'L';
+    expect(other.curve.data).toEqual([{ time: request.start, heightMeters: 1 }]);
+    expect(other.curve.coverage).toEqual(originalCoverage);
+    expect(other.events.data![0]!.type).toBe('H');
+
+    const cached = await client.getPredictions(request);
+    expect(cached.curve.data).toEqual(other.curve.data);
+    cached.curve.data![0]!.heightMeters = 777;
+    cached.curve.coverage.end = -1;
+    clock += 21600;
+    fetcher.mockRejectedValue(new Error('offline'));
+    const [saved, otherSaved] = await Promise.all([client.getPredictions(request), client.getPredictions(request)]);
+    expect(saved.curve.status).toBe('saved');
+    expect(saved.curve.data).toEqual([{ time: request.start, heightMeters: 1 }]);
+    expect(saved.curve.coverage).toEqual(originalCoverage);
+    saved.curve.data![0]!.heightMeters = 555;
+    saved.curve.coverage.start = -1;
+    saved.curve.error!.message = 'caller changed this message';
+    expect(otherSaved.curve.data).toEqual([{ time: request.start, heightMeters: 1 }]);
+    expect(otherSaved.curve.coverage).toEqual(originalCoverage);
+    expect(otherSaved.curve.error?.code).toBe('network');
+    expect(otherSaved.curve.error?.message).not.toBe(saved.curve.error!.message);
+  });
   it('refreshes at TTL equality and keeps products isolated by station', async () => {
     const { client, fetcher, advance } = harness();
     await client.getPredictions(request);

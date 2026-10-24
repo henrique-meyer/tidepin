@@ -48,6 +48,16 @@ function emptyProduct<T>(coverage: TideWindow, error: NoaaError, unsupported = f
   return { status: unsupported ? 'unsupported' : 'error', data: null, fetchedAt: null, coverage, error };
 }
 
+/** Each caller owns its result, including results sharing an in-flight download. */
+function snapshotProduct<T extends TideSample>(product: PredictionProduct<T>): PredictionProduct<T> {
+  return {
+    ...product,
+    data: product.data?.map(row => ({ ...row })) ?? null,
+    coverage: { start: product.coverage.start, end: product.coverage.end },
+    error: product.error ? { ...product.error } : null,
+  };
+}
+
 /** In-memory predictions only. No credentials, observations, addresses or search text. */
 export function createNoaaClient(options: NoaaClientOptions = {}) {
   const fetcher = options.fetch ?? globalThis.fetch;
@@ -171,12 +181,12 @@ export function createNoaaClient(options: NoaaClientOptions = {}) {
     } else if (!validTimeZone(request.timeZoneId)) {
       error = { code: 'timeZoneUnavailable', message: 'The station has no valid IANA time zone.' };
     }
-    if (error) return { ...result, curve: emptyProduct(request, error), events: emptyProduct(request, error) };
+    if (error) return { ...result, curve: snapshotProduct(emptyProduct<TideSample>(request, error)), events: snapshotProduct(emptyProduct<TideEvent>(request, error)) };
     const [curve, events] = await Promise.all([
       request.curveSupported === false ? Promise.resolve(emptyProduct<TideSample>(request, { code: 'curveUnavailable', message: 'This station supports high/low predictions only.' }, true)) : loadProduct(request, '6'),
       loadProduct(request, 'hilo'),
     ]);
-    return { ...result, curve: curve as PredictionProduct<TideSample>, events: events as PredictionProduct<TideEvent> };
+    return { ...result, curve: snapshotProduct(curve as PredictionProduct<TideSample>), events: snapshotProduct(events as PredictionProduct<TideEvent>) };
   }
   return { getPredictions };
 }

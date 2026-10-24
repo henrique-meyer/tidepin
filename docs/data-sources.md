@@ -12,7 +12,7 @@ Canonical time is UTC Unix seconds and canonical height is signed finite meters.
 
 ## Cache and failure behavior
 
-The in-memory cache separates station, datum, units, interval, schema and coverage. Its default freshness window is six hours and expires at equality; deployments can choose a shorter TTL through client construction. Superset coverage is reused, identical in-flight requests coalesce, and requests start serially at least one second apart. Manual refresh bypasses freshness but keeps the minimum sixty-second attempt interval. Failures honor longer `Retry-After` values and retain the last independently valid product as saved data. Without coverage the product returns a typed error and `null` data, never invented tides. Cache and attempt bookkeeping are bounded; nothing is persisted to disk.
+The in-memory cache separates station, datum, units, interval, schema and coverage. Its default freshness window is six hours and expires at equality; deployments can choose a shorter TTL through client construction. Superset coverage is reused, identical in-flight requests coalesce, and requests start serially at least one second apart. Each caller receives its own arrays, rows, coverage and error objects: changing a returned result cannot corrupt cache contents or another caller's result. Manual refresh bypasses freshness but keeps the minimum sixty-second attempt interval. Failures honor longer `Retry-After` values and retain the last independently valid product as saved data. Without coverage the product returns a typed error and `null` data, never invented tides. Cache and attempt bookkeeping are bounded; nothing is persisted to disk.
 
 ## Chart computations and verification
 
