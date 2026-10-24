@@ -1,3 +1,4 @@
+import { createNoaaScheduler, sharedNoaaScheduler, type NoaaScheduler } from './noaa-scheduler.js';
 import { stationDistanceMeters, validStationCoordinates, validStationId, type StationCoordinates, type TideStation } from '../shared/stations.js';
 import { validTimeZone } from '../shared/tides.js';
 import { lookupStationZones } from './station-zones.js';
@@ -12,6 +13,7 @@ export interface StationClientOptions {
   fetch?: typeof fetch;
   now?: () => number;
   sleep?: (milliseconds: number) => Promise<void>;
+  scheduler?: NoaaScheduler;
   lookupZones?: (latitude: number, longitude: number) => readonly string[];
 }
 const metadataBase = 'https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations';
@@ -60,52 +62,36 @@ function catalogRows(payload: unknown): CatalogStation[] {
 }
 
 export function createStationClient(options: StationClientOptions = {}): StationClient {
-  const fetcher = options.fetch ?? fetch;
+  const scheduler = options.scheduler ?? (options.fetch || options.now || options.sleep ? createNoaaScheduler(options) : sharedNoaaScheduler);
   const now = options.now ?? (() => Date.now() / 1000);
-  const sleep = options.sleep ?? (milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)));
   const lookupZones = options.lookupZones ?? lookupStationZones;
   let catalog: { rows: CatalogStation[]; fetchedAt: number } | undefined;
   let catalogPending: Promise<CatalogStation[]> | undefined;
   const details = new Map<string, StationCache>();
   const pending = new Map<string, Promise<TideStation>>();
-  let queue: Promise<unknown> = Promise.resolve();
-  let lastStart = -Infinity;
   let retryAt = -Infinity;
 
   async function load(url: string): Promise<unknown> {
-    const operation = queue.then(async () => {
-      if (now() < retryAt) throw new StationLookupError();
-      const delay = Math.max(0, Math.min(1, lastStart + 1 - now()));
-      if (delay) await sleep(delay * 1000);
-      lastStart = now();
-      try {
-        const response = await fetcher(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
-        if (!response.ok) {
-          const header = response.headers.get('retry-after');
-          const seconds = header ? Number(header) : NaN;
-          const retry = header ? Number.isFinite(seconds) ? now() + Math.max(0, seconds) : Date.parse(header) / 1000 : NaN;
-          retryAt = Math.max(now() + 60, Number.isFinite(retry) ? retry : -Infinity);
-          throw new StationLookupError();
-        }
-        const payload: unknown = await response.json();
-        if (!payload || typeof payload !== 'object' || 'error' in payload) throw new StationLookupError();
-        return payload;
-      } catch { retryAt = Math.max(retryAt, now() + 60); throw new StationLookupError(); }
-    });
-    queue = operation.catch(() => undefined);
-    return operation;
+    if (now() < retryAt) throw new StationLookupError();
+    try {
+      const { response, payload, jsonOk } = await scheduler.download(url);
+      if (!response.ok || !jsonOk || !payload || typeof payload !== 'object' || 'error' in payload) throw new StationLookupError();
+      return payload;
+    } catch { retryAt = Math.max(retryAt, now() + 60); throw new StationLookupError(); }
   }
-
   async function list(): Promise<CatalogStation[]> {
     const age = catalog ? now() - catalog.fetchedAt : Infinity;
     if (catalog && age >= 0 && age < metadataTtl) return catalog.rows;
     if (catalogPending) return catalogPending;
     catalogPending = (async () => {
       try {
-        const rows = catalogRows(await load(`${metadataBase}.json?type=tidepredictions`));
+        const payload = await load(`${metadataBase}.json?type=tidepredictions`);
+        let rows: CatalogStation[];
+        try { rows = catalogRows(payload); }
+        catch (error) { scheduler.deferUntil(now() + 60); throw error; }
         catalog = { rows, fetchedAt: now() };
         return rows;
-      } catch { retryAt = Math.max(retryAt, now() + 60); if (catalog) return catalog.rows; throw new StationLookupError(); }
+      } catch { if (now() >= retryAt) retryAt = now() + 60; if (catalog) return catalog.rows; throw new StationLookupError(); }
     })();
     try { return await catalogPending; } finally { catalogPending = undefined; }
   }

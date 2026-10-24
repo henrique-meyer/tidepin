@@ -1,6 +1,6 @@
 # System design
 
-The demo is one stateless Node 24 process with a browser client. This document describes its Start/display shell and prediction-data modules; tide graph rendering arrives through a later task.
+The demo is one stateless Node 24 process with a browser client. This document describes its Start/display shell, tide-data API and station-local graph.
 
 ## Request flow
 
@@ -14,7 +14,7 @@ The location picker is a separate Vite HTML entry. Both development and producti
 
 `src/server/app.ts` creates a Fastify instance without opening a socket, allowing request-level tests with Fastify injection. `config.ts` validates the process port, and `index.ts` supplies production asset paths and starts the process. `src/client` is plain TypeScript plus CSS. Vitest runs the tests in `test`; ESLint and TypeScript check the complete source tree.
 
-`src/server/noaa-client.ts` provides `createNoaaClient().getPredictions()` for a station ID, validated IANA zone and UTC display window. Separate curve/event requests normalize canonical UTC seconds and meters. Its bounded in-memory cache reuses covered windows, coalesces identical in-flight requests and retains independently valid saved products after errors. Downloads are serialized with one-second pacing; retries respect a sixty-second minimum and longer NOAA retry instructions. These modules are not yet exposed by a browser route.
+`src/server/noaa-client.ts` provides `createNoaaClient().getPredictions()` for a station ID, validated IANA zone and UTC display window. Separate curve/event requests normalize canonical UTC seconds and meters. Its bounded in-memory cache reuses covered windows, coalesces identical in-flight requests and retains independently valid saved products after errors. Downloads are serialized with one-second pacing; retries respect a sixty-second minimum and longer NOAA retry instructions. The daily tide API exposes these products to the graph.
 
 `src/shared/tides.ts` holds pure normalization, six-minute-limited interpolation, segmented chart points, separate day markers and next events, station-local calendar windows and unit/time formatting. Chart coordinates use elapsed seconds; canonical meters remain unchanged. A supplied IANA zone governs station dates, including DST, while requests use GMT to avoid ambiguous timestamps. See [data sources](data-sources.md) for the API contract, cache behavior and deterministic fixtures.
 
@@ -59,3 +59,15 @@ Place search supports keyboard selection: arrow keys wrap through suggestions, w
 `.github/workflows/deploy.yml` publishes a GHCR image on `main` and uses the production environment's OIDC identity to update the existing app to its immutable commit tag. The first run publishes without a rollout until all required environment secrets exist. The workflow checks both revision health and the process-health response, including waking scale-to-zero revisions, and serializes rollouts. Resource and generated endpoint details are masked in public logs. Infrastructure provisioning stays separate from app updates. The Bicep template also creates a shared resource dashboard when configured; see the [infrastructure guide](../infra/README.md).
 
 See [ADR 0001](decisions/0001-hosting.md) for hosting and [ADR 0002](decisions/0002-stack.md) for the stack. NOAA CO-OPS is the sole tide-data source; predictions are not for navigation.
+
+## Daily tide graph
+
+`GET /api/tides/:id` resolves NOAA station metadata and computes today's start/end from its validated IANA zone on the server. The response includes the station, UTC window, request instant and independent curve/event products. Invalid station IDs return 400, unknown stations 404, unavailable station zones 422 and metadata transport failures 503. Responses use `Cache-Control: no-store`; the bounded server prediction cache governs freshness. `?refresh=1` requests a manual refresh without bypassing upstream cooldowns. Clients cannot supply arbitrary prediction ranges or datums.
+
+Metadata and predictions use one process-wide `noaa-scheduler.ts` transport. It consumes each response body before releasing the queue, leaves at least one second between starts, and applies a shared minimum sixty-second cooldown after network/timeout, HTTP, malformed JSON or NOAA error-envelope failures. Longer `Retry-After` instructions apply to all queued NOAA callers. Product-validation failures also defer the shared queue. The clients retain their separate bounded caches, typed failures and caller-owned result snapshots.
+
+`graph-controller.ts` starts only on `tidepin:display-start`, redraws on preference events, and requests the app API every sixty seconds while active and visible. Hiding pauses polling and aborts its current HTTP request. Session end clears timers/data, aborts and invalidates late results; waking checks active display state before requesting anything. Session setup must register before graph setup so an expired hidden session ends synchronously before a foreground refresh. A failed app request may retain covered data in memory with a saved-data banner; station-local date rollover never relabels yesterday as today.
+
+`graph.ts` mounts current/next-event cards, the SVG curve and a real chronological table in the existing display. Straight segments stop at missing six-minute samples; no smoothing or authoritative extrema are inferred. The actual now dot requires valid interpolation. Subordinate stations show a curve-unavailable card while preserving high/low cards and the table. Loading, full failure, partial failure, saved data, empty days and throttled retry waits have explicit text. The chart uses elapsed UTC positions with station-local tick labels, so DST days stay 23/25 hours. All visible and accessible heights share feet/meters preferences, and the datum remains MLLW.
+
+`mountTideGraph` provides `start`, `setPreferences`, `refresh`, `stop` and `destroy`; `setupTideGraph` binds the existing window lifecycle events. An optional `onChartData` callback receives canonical chart points/current height or null when unavailable/stopped, allowing a later presentation layer to share data without its own fetch or timer. This graph does not depend on that layer.
