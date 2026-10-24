@@ -48,11 +48,32 @@ export function localClock(time: number, zone: string, hour12: boolean): string 
 
 /** Tick instants follow local wall-clock labels; spacing follows real elapsed UTC. */
 export function stationTicks(window: TideWindow, zone: string, hour12: boolean): { time: number; label: string }[] {
-  const ticks = [{ time: window.start, label: localClock(window.start, zone, hour12) }];
+  const tickClock = (time: number) => new Intl.DateTimeFormat('en-US', { timeZone: zone, hour: 'numeric', ...(hour12 ? {} : { minute: '2-digit' }), hour12 }).format(time * 1000);
+  const ticks = [{ time: window.start, label: tickClock(window.start) }];
   const formatter = new Intl.DateTimeFormat('en-GB', { timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
   for (let time = window.start + 1800; time < window.end; time += 1800) {
-    if (['06:00', '12:00', '18:00'].includes(formatter.format(time * 1000))) ticks.push({ time, label: localClock(time, zone, hour12) });
+    if (['06:00', '12:00', '18:00'].includes(formatter.format(time * 1000))) ticks.push({ time, label: tickClock(time) });
   }
-  ticks.push({ time: window.end, label: localClock(window.end, zone, hour12) });
+  ticks.push({ time: window.end, label: tickClock(window.end) });
   return ticks;
+}
+
+/** Clamp to the chart and move colliding event labels into neighboring lanes. */
+export function eventLabelPositions(events: readonly TideEvent[], x: (time: number) => number, y: (meters: number) => number, width: number, height: number, label: (time: number) => string) {
+  const occupied: { left: number; right: number; top: number; bottom: number }[] = [];
+  return events.map(event => {
+    const text = label(event.time);
+    const half = text.length * 3.2;
+    const center = Math.max(40 + half, Math.min(width - 12 - half, x(event.time)));
+    const direction = event.type === 'H' ? -1 : 1;
+    const initial = y(event.heightMeters) + direction * 14;
+    const candidates = [0, 14, 28, 42, -14, -28].map(offset => Math.max(32, Math.min(height - 34, initial + direction * offset)));
+    const box = (baseline: number) => ({ left: center - half, right: center + half, top: baseline - 11, bottom: baseline + 3 });
+    const baseline = candidates.find(candidate => {
+      const next = box(candidate);
+      return occupied.every(other => next.left > other.right + 4 || next.right < other.left - 4 || next.top > other.bottom + 2 || next.bottom < other.top - 2);
+    }) ?? candidates[0]!;
+    occupied.push(box(baseline));
+    return { x: center, y: baseline, text, event };
+  });
 }

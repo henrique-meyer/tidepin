@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createGraphController, type GraphState } from '../src/client/graph-controller.js';
-import { chartGeometry, displayHeight, parseTideResponse, stationTicks } from '../src/client/graph-model.js';
-import { buildChartData, plotFraction, stationDayWindow } from '../src/shared/tides.js';
+import { chartGeometry, displayHeight, eventLabelPositions, parseTideResponse, stationTicks } from '../src/client/graph-model.js';
+import { buildChartData, formatStationTime, plotFraction, stationDayWindow } from '../src/shared/tides.js';
 import type { TideResponse } from '../src/shared/tide-response.js';
 
 const now = Date.parse('2026-11-01T17:00:00Z') / 1000;
@@ -26,8 +26,19 @@ describe('graph presentation', () => {
       const window = stationDayWindow(Date.parse(date) / 1000, 'America/New_York')!;
       const ticks = stationTicks(window, 'America/New_York', false);
       expect(ticks.map(tick => tick.label)).toEqual(['00:00', '06:00', '12:00', '18:00', '00:00']);
+      expect(stationTicks(window, 'America/New_York', true).map(tick => tick.label)).toEqual(['12 AM', '6 AM', '12 PM', '6 PM', '12 AM']);
       expect(plotFraction(ticks[1]!.time, window)).toBeCloseTo((hours === 23 ? 5 : 7) / hours);
     }
+  });
+  it('distinguishes repeated local hours and moves colliding event labels inside narrow bounds', () => {
+    const first = Date.parse('2026-11-01T05:30:00Z') / 1000;
+    const second = first + 3600;
+    expect(formatStationTime(first, 'America/New_York')).toContain('EDT (GMT-04:00)');
+    expect(formatStationTime(second, 'America/New_York')).toContain('EST (GMT-05:00)');
+    const events = [{ time: first, heightMeters: 1, type: 'H' as const }, { time: second, heightMeters: 1, type: 'H' as const }];
+    const labels = eventLabelPositions(events, () => 45, () => 60, 272, 200, () => '1:30 AM');
+    expect(labels[0]!.y).not.toBe(labels[1]!.y);
+    expect(labels.every(label => label.x > 40 && label.x < 260 && label.y >= 32 && label.y <= 166)).toBe(true);
   });
   it('converts every geometric height from canonical meters and keeps at most five meaningful ticks', () => {
     const data = fixture();
@@ -95,6 +106,16 @@ describe('visible display graph lifecycle', () => {
     fetcher.mockRejectedValue(new Error('offline'));
     await graph.refresh(); expect(states.at(-1)?.data).not.toBeNull(); expect(states.at(-1)?.error).toBe('offline');
     advanceDay(); await graph.refresh(); expect(states.at(-1)?.data).toBeNull();
+    graph.destroy();
+  });
+  it('clears previously covered predictions when the station zone becomes unavailable', async () => {
+    const { graph, fetcher, states } = harness();
+    graph.start({ stationId: '0012345' }, preferences); await flush();
+    expect(states.at(-1)?.data).not.toBeNull();
+    fetcher.mockResolvedValue(new Response('{}', { status: 422 }));
+    await graph.refresh();
+    expect(states.at(-1)?.data).toBeNull();
+    expect(states.at(-1)?.error).toContain('time zone is unavailable');
     graph.destroy();
   });
 });

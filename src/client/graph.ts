@@ -2,7 +2,7 @@ import './graph.css';
 import { buildChartData, formatStationTime, stationDayWindow, type TideEvent } from '../shared/tides.js';
 import type { DisplaySettings } from './display-settings.js';
 import { createGraphController, type GraphState } from './graph-controller.js';
-import { chartGeometry, displayHeight, localClock, stationTicks } from './graph-model.js';
+import { chartGeometry, displayHeight, eventLabelPositions, localClock, stationTicks } from './graph-model.js';
 
 export type ChartData = Pick<ReturnType<typeof buildChartData>, 'chartPoints' | 'current'>;
 export interface GraphOptions { onChartData?: (data: ChartData | null) => void; onStation?: (name: string) => void }
@@ -54,13 +54,13 @@ export function mountTideGraph(root: HTMLElement, options: GraphOptions = {}) {
     else if (!chart.chartPoints.length) chartMarkup = '<div class="graph-state graph-card"><p>No curve predictions are available for this day.</p></div>';
     else {
       const width = Math.max(260, root.clientWidth - 24);
-      const svgHeight = Math.min(440, Math.max(200, window.innerHeight * 0.34));
+      const svgHeight = width < 600 ? 200 : Math.min(360, Math.max(200, window.innerHeight - 820));
       const geometry = chartGeometry(chart, data.window, unit, width, svgHeight);
       const bottom = svgHeight - 26;
       const grid = geometry.ticks.map(tick => {
         const meters = unit === 'ft' ? tick * 0.3048 : tick;
         const y = geometry.y(meters);
-        return `<line class="${tick === 0 ? 'graph-zero' : 'graph-grid'}" x1="40" x2="${width - 12}" y1="${y}" y2="${y}"/><text class="graph-axis" x="32" y="${y + 4}" text-anchor="end">${tick.toString().replace('-', '−')}</text>`;
+        return `<line class="${tick === 0 ? 'graph-zero' : 'graph-grid'}" x1="40" x2="${width - 12}" y1="${y}" y2="${y}"/><text class="graph-axis" x="34" y="${y + 4}" text-anchor="end">${tick.toString().replace('-', '−')} ${unit}</text>`;
       }).join('');
       const paths = chart.segments.map(rows => {
         const path = geometry.path(rows);
@@ -68,19 +68,21 @@ export function mountTideGraph(root: HTMLElement, options: GraphOptions = {}) {
         return `<path class="graph-fill" d="${fill}"/><path class="graph-curve" d="${path}"/>`;
       }).join('');
       const markers = chart.markers.map(event => `<circle class="${event.type === 'H' ? 'graph-high' : 'graph-low'}" cx="${geometry.x(event.time)}" cy="${geometry.y(event.heightMeters)}" r="${event.type === 'H' ? 5 : 4}"><title>${event.type === 'H' ? 'High' : 'Low'}: ${escape(height(event.heightMeters))}, ${escape(time(event.time, true))}</title></circle>`).join('');
+      const eventLabels = eventLabelPositions(chart.markers, geometry.x, geometry.y, width, svgHeight, instant => localClock(instant, zone, hour12))
+        .map(label => `<text class="graph-event-label" x="${label.x}" y="${label.y}" text-anchor="middle">${escape(label.text)}</text>`).join('');
       const ticks = stationTicks(data.window, zone, hour12).map((tick, index, all) => `<text class="graph-axis" x="${geometry.x(tick.time)}" y="${svgHeight - 5}" text-anchor="${index === 0 ? 'start' : index === all.length - 1 ? 'end' : 'middle'}">${escape(tick.label)}</text>`).join('');
       let marker = '';
       if (isToday && chart.current && now >= data.window.start && now < data.window.end) {
         const x = geometry.x(now);
         const pill = Math.max(40, Math.min(width - 72, x - 30));
-        marker = `<line class="graph-now-line" x1="${x}" x2="${x}" y1="22" y2="${bottom}"/><rect class="graph-now-pill" x="${pill}" y="1" width="60" height="16" rx="8"/><text class="graph-now-label" x="${pill + 30}" y="13" text-anchor="middle">NOW</text>${chart.current ? `<circle class="graph-now-dot" cx="${x}" cy="${geometry.y(chart.current.heightMeters)}" r="6"/>` : ''}`;
+        marker = `<g><title>Now: ${escape(time(now))}</title><line class="graph-now-line" x1="${x}" x2="${x}" y1="22" y2="${bottom}"/><rect class="graph-now-pill" x="${pill}" y="1" width="60" height="16" rx="8"/><text class="graph-now-label" x="${pill + 30}" y="13" text-anchor="middle">${escape(localClock(now, zone, hour12))}</text><circle class="graph-now-dot" cx="${x}" cy="${geometry.y(chart.current.heightMeters)}" r="6"/></g>`;
       }
-      chartMarkup = `<figure class="graph-card graph-chart"><svg viewBox="0 0 ${width} ${svgHeight}" role="img" aria-label="${escape(`NOAA tide predictions in ${unit}, ${date}, ${zone}. ${chart.current ? `Current predicted height ${height(chart.current.heightMeters)}.` : 'Current height unavailable.'} High and low details follow in the table.`)}"><text class="graph-axis" x="4" y="14">${unit}</text>${grid}${paths}${markers}${marker}${ticks}</svg><figcaption class="graph-footnote">${escape(zone)} · MLLW · NOAA CO-OPS</figcaption></figure>`;
+      chartMarkup = `<figure class="graph-card graph-chart"><svg viewBox="0 0 ${width} ${svgHeight}" role="img" aria-label="${escape(`NOAA tide predictions in ${unit}, ${date}, ${zone}. ${chart.current ? `Current predicted height ${height(chart.current.heightMeters)} at ${time(now)}.` : 'Current height unavailable.'} High and low details follow in the table.`)}">${grid}${paths}${markers}${eventLabels}${marker}${ticks}</svg><figcaption class="graph-footnote">${escape(zone)} · MLLW · NOAA CO-OPS</figcaption></figure>`;
     }
     const rows = chart.markers.map(event => `<tr><th scope="row">${event.type === 'H' ? '↑ High' : '↓ Low'}</th><td>${escape(time(event.time))}</td><td class="graph-table-height">${escape(height(event.heightMeters))}</td></tr>`).join('');
     root.innerHTML = `<p class="graph-meta">${escape(date)} · Station ${escape(data.station.id)}<br>${escape(updated)}</p>
       <div class="graph-status" role="status">${notices.length ? `<p>${escape(notices.join(' '))}</p>` : loading ? '<p>Updating predictions…</p>' : ''}</div>
-      <article class="graph-card graph-current"><div><h3>Predicted height now</h3><p class="graph-current-value">${chart.current ? escape(height(chart.current.heightMeters)) : '—'}</p></div><div class="graph-current-context"><p>${escape(localClock(now, zone, hour12))}</p><p class="graph-footnote">${escape(zone)} · MLLW</p>${!chart.current ? '<p class="graph-footnote">Current height unavailable</p>' : ''}</div></article>
+      <article class="graph-card graph-current"><div><h3>Predicted height now</h3><p class="graph-current-value">${chart.current ? escape(height(chart.current.heightMeters)) : '—'}</p></div><div class="graph-current-context"><p>${escape(time(now))}</p><p class="graph-footnote">${escape(zone)} · MLLW</p>${!chart.current ? '<p class="graph-footnote">Current height unavailable</p>' : ''}</div></article>
       <div class="graph-events">${eventCard(chart.nextHigh, 'High')}${eventCard(chart.nextLow, 'Low')}</div>
       ${chartMarkup}<section class="graph-table-section"><h3>High &amp; low tides</h3><div class="graph-table-scroll"><table><caption class="graph-sr-only">${escape(date)}, ${escape(zone)}, predicted heights relative to MLLW</caption><thead><tr><th scope="col">Event</th><th scope="col">Station time</th><th scope="col">Height (${unit})</th></tr></thead><tbody>${rows || `<tr><td colspan="3">${products.events.data === null ? 'High/low predictions are unavailable.' : 'No high or low tides in this day.'}</td></tr>`}</tbody></table></div></section>
       <div class="graph-refresh"><p class="graph-footnote">Predicted heights relative to MLLW. Not for navigation.</p><button class="graph-retry" type="button" ${loading || wait ? 'disabled' : ''}>Refresh predictions</button></div>`;

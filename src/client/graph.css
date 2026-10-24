@@ -18,6 +18,7 @@
 .graph-chart svg { display: block; width: 100%; overflow: visible; }
 .graph-chart figcaption { text-align: right; margin-top: var(--space-1); }
 .graph-axis { fill: var(--color-text-secondary); font: 11px system-ui, sans-serif; }
+.graph-event-label { fill: var(--color-text-primary); font: 600 11px system-ui, sans-serif; }
 .graph-grid { stroke: var(--chart-grid); stroke-width: 1; }
 .graph-zero { stroke: var(--color-border); stroke-width: 1; }
 .graph-curve { stroke: var(--chart-curve); stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
@@ -54,8 +55,13 @@
   .graph-table-section th, .graph-table-section td { padding: var(--space-2); font-size: var(--font-footnote-size); }
 }
 @media (min-width: 1000px) {
-  .tide-graph { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tide-graph { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
   .graph-meta, .graph-status, .graph-chart, .graph-table-section, .graph-refresh { grid-column: 1 / -1; }
+  .graph-meta { grid-row: 1; }
+  .graph-status { grid-row: 2; }
   .graph-current, .graph-events { grid-row: 3; }
+  .graph-chart { grid-row: 4; }
+  .graph-table-section { grid-row: 5; }
+  .graph-refresh { grid-row: 6; }
   .graph-table-section table { font-size: var(--font-secondary-size); }
 }

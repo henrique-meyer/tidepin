@@ -47,9 +47,11 @@ export function createGraphController(options: {
     request = abort;
     loading = true;
     render();
+    let invalidateData = false;
     try {
       const response = await fetcher(`/api/tides/${encodeURIComponent(stationId)}${force ? '?refresh=1' : ''}`, { signal: AbortSignal.any([abort.signal, AbortSignal.timeout(30_000)]) });
       if (!response.ok) {
+        invalidateData = response.status === 422 || response.status === 404;
         if (response.status === 422) throw new Error('The station time zone is unavailable. Predictions cannot be shown safely.');
         throw new Error('NOAA predictions are unavailable. Please try again later.');
       }
@@ -60,7 +62,7 @@ export function createGraphController(options: {
     } catch (failure) {
       if (!active || generation !== ownGeneration || abort.signal.aborted) return;
       const currentWindow = data?.station.timeZoneId ? stationDayWindow(now(), data.station.timeZoneId) : null;
-      if (!currentWindow || currentWindow.start !== data?.window.start || currentWindow.end !== data?.window.end) data = null;
+      if (invalidateData || !currentWindow || currentWindow.start !== data?.window.start || currentWindow.end !== data?.window.end) data = null;
       error = failure instanceof Error ? failure.message : 'NOAA predictions are unavailable.';
     } finally {
       if (generation === ownGeneration && request === abort) {
