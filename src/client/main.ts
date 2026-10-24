@@ -8,9 +8,11 @@ import { readLocation, saveLocation, takeReturnToDisplay } from './location-sett
 import { mountStartScreen } from './start-screen.js';
 import { setupTideGraph } from './graph.js';
 import { setupDisplaySession } from './session.js';
+import { mountOceanBackground } from './ocean-background.js';
 
 // Session expiry must run before graph visibility/polling listeners resume work.
 setupDisplaySession();
+const ocean = mountOceanBackground(document.body);
 
 const main = document.querySelector('main');
 if (!main) throw new Error('The display requires a main element.');
@@ -126,6 +128,7 @@ window.addEventListener('tidepin:session-ended', () => {
 
 // A saved picker result returns to the main display; an ordinary reload still requires Start.
 setupTideGraph({
+  onChartData(data) { ocean.update(data); },
   onStation(name, stationId) {
     const selected = controller.view().location;
     if (selected?.stationId === stationId && selected.stationName !== name) controller.updateLocationName(stationId, name);

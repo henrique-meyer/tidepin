@@ -19,7 +19,7 @@ Every public change starts from a tracked task and records its scope here.
 | TIDEDEMO-16 | Reconcile public usage, architecture, data, deployment and decision docs with shipped behavior; add sanitized screenshots and complete the public task history. | Implemented; verification |
 | TIDEDEMO-17 | Have the DNS-zone owner configure the verification and routing records needed for the separately bound demo hostname. | Complete |
 | TIDEDEMO-18 | Apply the owner-selected source-available noncommercial project license, metadata, branding terms, browser bundle notice and runtime license copy. | Complete |
-| TIDEDEMO-19 | Add a subtle ocean background using the graph's canonical tide data and shared lifecycle, without separate fetching. | Review pending |
+| TIDEDEMO-19 | Add a subtle static ocean background driven by the graph's current height and window range, with theme-aware colors, smooth finite level updates, reduced-motion support and no extra requests or wave animation. | Implemented; visual review required |
 | TIDEDEMO-20 | Consider optional, very subtle rolling-wave motion on the tide background, respecting reduced motion. | Planned; optional |
 | TIDEDEMO-21 | Combine the NOAA credit and navigation disclaimer in one naturally wrapping footer paragraph, remove the redundant prediction sentence and preserve personal/source credit on both display and location pages. | Complete |
 

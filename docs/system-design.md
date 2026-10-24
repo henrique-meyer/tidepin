@@ -33,6 +33,7 @@ The browser never calls NOAA directly. Maps/place search is a separate, deployme
 | `graph-controller.ts`, `graph-model.ts`, `graph.ts` | Request lifecycle, response validation, geometry, cards/SVG/table and accessibility |
 | `location.ts`, `location-settings.ts`, `geolocation.ts` | Map/search/pin selection, browser position and narrowly scoped device storage |
 | `controls.ts`, `display-settings.ts`, `session.ts` | Top bar/settings, shared preferences, bounded session and footer time left |
+| `ocean-background.ts`, `ocean-level.ts` | Decorative tide-level backdrop from the graph's existing canonical data, with no request or clock |
 
 ## HTTP contract and build
 
@@ -83,6 +84,10 @@ The source-style top bar contains Settings, Location and user-requested Full scr
 `display-settings.ts` owns the typed `{heightUnit: 'ft' | 'm', clockFormat: '12h' | '24h'}` record. Defaults are feet and 12-hour time. Returned snapshots are independent, malformed input falls back safely, unknown fields are not written, and cross-tab changes update subscribers. Blocked device storage leaves preferences usable in memory. `tidepin:preferences-changed` redraws the graph without starting a new session or request.
 
 System light/dark appearance follows `prefers-color-scheme` immediately, without a stored theme setting. CSS properties carry the source Tidepin color, typography, spacing, radius and motion tokens. Text uses system fonts and rem sizes. More-contrast promotes secondary text; reduced-motion disables spinner motion. There is no audio or weather service.
+
+`mountOceanBackground(root)` provides an isolated, decorative water body behind the content, returning `update(data)` and `destroy()`. The main page mounts it on the body and connects `setupTideGraph({ onChartData })`, preserving the station-name callback and session setup order. The graph passes its existing `buildChartData` result on the same refresh cadence: only `chartPoints` and its already interpolated `current` height are consumed. No request, clock, location state or continuous animation loop is added. Relative height within that chart window maps from a low surface at 78% of viewport height to a high surface at 24%, clamped at both ends. Missing current data or a flat/unusable range uses an explicitly neutral, faint tint without a visible tide surface. Splash, initial loading, full failure and session end are neutral. Covered saved predictions remain eligible when the graph has a valid current interpolation; gaps and high/low-only stations are neutral.
+
+The water uses very faint theme-token color mixes, a soft surface line, no interactive elements and `aria-hidden`. Its host establishes a stacking context; the fixed layer stays behind content without intercepting input, including in full screen and on mobile. A finite transform transition uses the existing standard motion token to smooth each changed level; identical updates do not write styles. Reduced motion disables that transition, while increased contrast and forced colors hide the decorative layer. The graph lifecycle owns mounting and disposal; graph-page and Step 2 screenshot review is required before the visual task merges. There is no wave animation.
 
 The footer's stable `footer-source` paragraph combines the NOAA link and “Not for navigation.” with natural wrapping. Personal/source credit stays in `footer-credit`, and the picker retains its privacy note. External links use `rel="noopener"`. A flexible main row keeps the footer below content rather than overlaying the chart.
 

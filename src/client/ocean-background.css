@@ -1,0 +1,51 @@
+.ocean-background-host {
+  isolation: isolate;
+}
+
+.ocean-background {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  /* Keep the existing theme tokens in charge; only a faint tint marks the water. */
+  --ocean-water-top: color-mix(in srgb, var(--chart-curve) 4%, var(--color-background));
+  --ocean-water-bottom: color-mix(in srgb, var(--chart-curve) 2%, var(--color-background));
+  --ocean-line: color-mix(in srgb, var(--chart-curve) 6%, var(--color-background));
+}
+
+.ocean-water {
+  position: absolute;
+  inset: 0;
+  border-top: 1px solid var(--ocean-line);
+  background: linear-gradient(var(--ocean-water-top), var(--ocean-water-bottom));
+  transform: translateY(var(--ocean-surface, 51%));
+  transition: transform var(--motion-standard) ease-in-out;
+}
+
+/* No current prediction (including splash/loading): a neutral tint, with no tide surface claim. */
+.ocean-background[data-state="neutral"] .ocean-water {
+  border-top-color: transparent;
+  opacity: 0.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ocean-background {
+    --ocean-water-top: color-mix(in srgb, var(--chart-curve) 6%, var(--color-background));
+    --ocean-water-bottom: color-mix(in srgb, var(--chart-curve) 3%, var(--color-background));
+    --ocean-line: color-mix(in srgb, var(--chart-curve) 12%, var(--color-background));
+  }
+}
+
+@media (prefers-contrast: more), (forced-colors: active) {
+  .ocean-background {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ocean-water {
+    transition: none;
+  }
+}
