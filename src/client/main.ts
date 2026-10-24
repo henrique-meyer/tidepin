@@ -125,7 +125,12 @@ window.addEventListener('tidepin:session-ended', () => {
 });
 
 // A saved picker result returns to the main display; an ordinary reload still requires Start.
-setupTideGraph();
+setupTideGraph({
+  onStation(name) {
+    const selected = controller.view().location;
+    if (selected && selected.stationName !== name) controller.updateLocationName(selected.stationId, name);
+  },
+});
 if (takeReturnToDisplay() && savedLocation) controller.start();
 void controller.initialize();
 

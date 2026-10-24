@@ -31,7 +31,7 @@ export function createNoaaScheduler(options: {
           const header = response.headers.get('retry-after');
           const seconds = header ? Number(header) : NaN;
           const specified = header ? Number.isFinite(seconds) ? now() + Math.max(0, seconds) : Date.parse(header) / 1000 : NaN;
-          retryAt = Math.max(now() + 60, Number.isFinite(specified) ? specified : -Infinity);
+          retryAt = Math.max(retryAt, now() + 60, Number.isFinite(specified) ? specified : -Infinity);
           await response.arrayBuffer();
           return { response, payload: null, jsonOk: true };
         }

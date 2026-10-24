@@ -42,12 +42,12 @@ describe('shared NOAA scheduler', () => {
     await scheduler.download('https://api.tidesandcurrents.noaa.gov/');
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
-  it.each(['network', 'timeout', 'json', 'envelope'])('backs off both clients after a %s failure', async mode => {
+  it.each(['network', 'timeout', 'json', 'envelope', 'row'])('backs off both clients after a %s failure', async mode => {
     let clock = 1767225600;
     const fetcher = vi.fn(async () => {
       if (mode === 'network') throw new Error('offline');
       if (mode === 'timeout') throw new DOMException('Timed out', 'TimeoutError');
-      return new Response(mode === 'json' ? 'not JSON' : '{"error":{"message":"Unavailable"}}');
+      return new Response(mode === 'json' ? 'not JSON' : mode === 'row' ? '{"predictions":[{"t":"invalid","v":"1"}]}' : '{"error":{"message":"Unavailable"}}');
     });
     const scheduler = createNoaaScheduler({ fetch: fetcher, now: () => clock, sleep: async milliseconds => { clock += milliseconds / 1000; } });
     const predictions = createNoaaClient({ scheduler, now: () => clock });
@@ -62,5 +62,29 @@ describe('shared NOAA scheduler', () => {
     clock++;
     await expect(stations.get('0012345')).rejects.toThrow();
     expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+  it('applies failed metadata validation to queued prediction traffic', async () => {
+    let clock = 1767225600;
+    const fetcher = vi.fn(async () => new Response('{"stations":[]}'));
+    const scheduler = createNoaaScheduler({ fetch: fetcher, now: () => clock, sleep: async milliseconds => { clock += milliseconds / 1000; } });
+    const stations = createStationClient({ scheduler, now: () => clock });
+    await expect(stations.get('0012345')).rejects.toThrow();
+    const predictions = createNoaaClient({ scheduler, now: () => clock });
+    const result = await predictions.getPredictions({ stationId: '0012345', timeZoneId: 'America/New_York', start: clock, end: clock + 86400 });
+    expect(result.curve.error?.code).toBe('throttled');
+    expect(result.events.error?.code).toBe('throttled');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it('never shortens a cooldown established while a request is in flight', async () => {
+    let finish!: (response: Response) => void;
+    const fetcher = vi.fn(() => new Promise<Response>(resolve => { finish = resolve; }));
+    const scheduler = createNoaaScheduler({ fetch: fetcher, now: () => 0 });
+    const pending = scheduler.download('https://api.tidesandcurrents.noaa.gov/');
+    await Promise.resolve();
+    scheduler.deferUntil(500);
+    finish(new Response('', { status: 429, headers: { 'Retry-After': '120' } }));
+    await pending;
+    await expect(scheduler.download('https://api.tidesandcurrents.noaa.gov/')).rejects.toMatchObject({ retryAt: 500 });
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });
