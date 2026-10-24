@@ -135,6 +135,18 @@ describe('NOAA predictions client', () => {
     expect(result.events.status).toBe('fresh');
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
+  it('accepts NOAA TEC identifiers and rejects invalid/traversal station input', async () => {
+    const { client, fetcher } = harness();
+    const result = await client.getPredictions({ ...request, stationId: 'TEC1603', curveSupported: false });
+    expect(result.events.status).toBe('fresh');
+    const calls = fetcher.mock.calls as unknown as [URL][];
+    expect(calls[0]![0].searchParams.get('station')).toBe('TEC1603');
+    expect(calls[0]![0].searchParams.get('interval')).toBe('hilo');
+    for (const stationId of ['A1', '12345678', '../secret', 'TEC1603/..', 'é123456']) {
+      expect((await client.getPredictions({ ...request, stationId })).events.error?.code).toBe('invalidRequest');
+    }
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
   it('splits long coverage into at most thirty elapsed days with shared boundaries', async () => {
     const { client, fetcher } = harness();
     await client.getPredictions({ ...request, end: request.start + 32 * 86400 });

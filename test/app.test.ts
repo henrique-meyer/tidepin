@@ -23,9 +23,11 @@ describe('application contract', () => {
     const clientDir = await mkdtemp(join(tmpdir(), 'tidepin-client-'));
     cleanup.push(() => rm(clientDir, { recursive: true, force: true }));
     await writeFile(join(clientDir, 'index.html'), '<h1>Tidepin</h1>');
+    await writeFile(join(clientDir, 'location.html'), '<h1>Location</h1>');
     const app = await buildApp({ clientDir, assetsDir: resolve('assets') });
     cleanup.push(() => app.close());
     expect((await app.inject('/')).body).toContain('<h1>Tidepin</h1>');
+    expect((await app.inject('/location')).body).toContain('<h1>Location</h1>');
     const logo = await app.inject('/assets/brand/logo/logo.svg');
     expect(logo.statusCode).toBe(200);
     expect(logo.headers['content-type']).toContain('image/svg+xml');
@@ -36,11 +38,14 @@ describe('application contract', () => {
 
 describe('runtime configuration', () => {
   it('uses port 8080 by default and accepts an explicit port', () => {
-    expect(loadConfig({})).toEqual({ port: 8080 });
-    expect(loadConfig({ PORT: '9090' })).toEqual({ port: 9090 });
+    expect(loadConfig({})).toEqual({ port: 8080, googleMapsApiKey: '', googleMapsMapId: 'DEMO_MAP_ID', sessionLimitMinutes: 120 });
+    expect(loadConfig({ PORT: '9090' }).port).toBe(9090);
   });
 
   it.each(['', '0', '-1', '65536', '8080oops', '1.5'])('rejects invalid PORT %j', (PORT) => {
     expect(() => loadConfig({ PORT })).toThrow('PORT must be an integer');
+  });
+  it.each(['', '0', '-1', '121', '1.5', 'NaN'])('rejects invalid session limits %j', (SESSION_LIMIT_MINUTES) => {
+    expect(() => loadConfig({ SESSION_LIMIT_MINUTES })).toThrow('SESSION_LIMIT_MINUTES');
   });
 });

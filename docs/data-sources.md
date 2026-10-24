@@ -8,7 +8,13 @@ The server-side client uses NOAA's public [Data Retrieval API](https://api.tides
 
 Curve coverage includes one six-minute sample before/after the display window. Events include 24 elapsed hours before/after it for lookahead across midnight. Requests longer than thirty elapsed days are split, retaining a shared boundary sample. Every row is validated; identical duplicates collapse and conflicting duplicates invalidate the complete product. An empty predictions array is valid. HTTP failures, malformed JSON and NOAA's HTTP-200 error envelopes produce typed failures.
 
-Canonical time is UTC Unix seconds and canonical height is signed finite meters. A caller supplies the station's validated IANA zone, never a device zone or guessed fixed offset. `stationDayWindow` computes local calendar boundaries (including DST) and `formatStationTime` includes station-zone/UTC-offset labels. NOAA remains the only tide-data source. Station discovery is a separate location-picker responsibility, using NOAA's [Metadata API](https://api.tidesandcurrents.noaa.gov/mdapi/prod/).
+Canonical time is UTC Unix seconds and canonical height is signed finite meters. A caller supplies the station's validated IANA zone, never a device zone or guessed fixed offset. `stationDayWindow` computes local calendar boundaries (including DST) and `formatStationTime` includes station-zone/UTC-offset labels. NOAA remains the only tide-data source.
+
+## Station discovery and local time
+
+The location picker resolves its chosen coordinates against NOAA's [Metadata API](https://api.tidesandcurrents.noaa.gov/mdapi/prod/), using `stations.json?type=tidepredictions`. Great-circle distance chooses the nearest station, including across the date line. Reference (`R`) and subordinate (`S`) prediction stations are included; subordinate stations expose high/low predictions without an invented sampled curve. IDs are seven-character ASCII alphanumeric strings, including NOAA's `TEC` identifiers; leading zeros and case are preserved. The prediction client shares this validation, so a catalog-selected `TEC` station can request its events; malformed and traversal-like IDs are rejected before network access.
+
+Catalog and station-detail metadata are cached in process memory for seven days, with coalescing, one-second request pacing and failure backoff. No user coordinates, addresses or query strings are persisted on the server. A geographic IANA lookup uses the station's public coordinates and cross-checks NOAA standard-offset/DST metadata. Ambiguous or inconsistent zones remain unavailable. See [ADR 0004](decisions/0004-station-time-zones.md) for the server-only dependency, bounded cache and measured size/memory tradeoff, and [third-party notices](third-party-notices.md) for boundary-data attribution.
 
 ## Cache and failure behavior
 

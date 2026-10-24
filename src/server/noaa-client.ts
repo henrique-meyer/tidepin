@@ -1,4 +1,5 @@
 import { normalizePredictions, validTimeZone, type TideEvent, type TideSample, type TideWindow } from '../shared/tides.js';
+import { validStationId } from '../shared/stations.js';
 
 export interface NoaaError {
   code: 'invalidRequest' | 'timeZoneUnavailable' | 'http' | 'network' | 'invalidProduct' | 'throttled' | 'curveUnavailable';
@@ -176,7 +177,7 @@ export function createNoaaClient(options: NoaaClientOptions = {}) {
   async function getPredictions(request: PredictionRequest): Promise<Predictions> {
     const result = { stationId: request.stationId, timeZoneId: request.timeZoneId, datum: 'MLLW' as const, units: 'metric' as const };
     let error: NoaaError | null = null;
-    if (!/^\d{7}$/.test(request.stationId) || !Number.isSafeInteger(request.start) || !Number.isSafeInteger(request.end) || Math.abs(request.start) > 8e12 || Math.abs(request.end) > 8e12 || request.end <= request.start || request.end - request.start > 366 * 86400) {
+    if (!validStationId(request.stationId) || !Number.isSafeInteger(request.start) || !Number.isSafeInteger(request.end) || Math.abs(request.start) > 8e12 || Math.abs(request.end) > 8e12 || request.end <= request.start || request.end - request.start > 366 * 86400) {
       error = { code: 'invalidRequest', message: 'A NOAA station and valid prediction window are required.' };
     } else if (!validTimeZone(request.timeZoneId)) {
       error = { code: 'timeZoneUnavailable', message: 'The station has no valid IANA time zone.' };

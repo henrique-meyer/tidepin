@@ -18,6 +18,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 COPY assets ./assets
+COPY THIRD-PARTY-NOTICES ./THIRD-PARTY-NOTICES
 USER node
 EXPOSE 8080
 CMD ["node", "dist/server/index.js"]

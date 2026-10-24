@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Choose a point for Tidepin tide predictions. Only coordinates and the NOAA station identifier are saved on this device." />
+    <title>Location · Tidepin</title>
+    <script type="module" src="/location.ts"></script>
+  </head>
+  <body class="picker-page">
+    <header class="picker-header">
+      <img src="/assets/brand/logo/logo.svg" alt="" width="36" height="36" />
+      <h1>Location</h1>
+      <a id="back-to-display" href="/">Back to the display</a>
+    </header>
+    <main class="picker">
+      <section class="picker-panel" aria-label="Location settings">
+        <div class="search">
+          <label for="search-input">Search for a place</label>
+          <input id="search-input" type="search" autocomplete="off" spellcheck="false" placeholder="City, address or landmark" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="search-results" disabled />
+          <div id="search-popup" class="search-popup" hidden>
+            <ul id="search-results" role="listbox" aria-label="Places"></ul>
+            <p class="hint search-credit">Search results from Google Maps</p>
+          </div>
+          <p class="hint">A search moves the pin. Click the map or drag the pin to adjust it.</p>
+        </div>
+        <div>
+          <p id="point-readout">No point set yet.</p>
+          <button id="use-here" class="link-button" type="button" hidden>Use current location</button>
+        </div>
+        <p id="station-readout" aria-live="polite">Choose a point to find its nearest tide station.</p>
+        <button id="save" type="button" disabled>Save location</button>
+        <p id="picker-status" role="status"></p>
+      </section>
+      <div id="map" class="map" role="region" aria-label="Map"><p class="map-message">Loading map…</p></div>
+    </main>
+    <footer class="site-footer">
+      <p><a href="https://tidesandcurrents.noaa.gov" target="_blank" rel="noopener">Tide predictions: NOAA CO-OPS (tidesandcurrents.noaa.gov)</a></p>
+      <p>Predictions only. Not for navigation.</p>
+      <p>Only coordinates and the station identifier are saved on this device. Searches and addresses are not kept.</p>
+      <p>Designed &amp; built by Henrique Meyer · <a href="https://github.com/henrique-meyer/tidepin" target="_blank" rel="noopener">Source on GitHub</a></p>
+    </footer>
+  </body>
+</html>

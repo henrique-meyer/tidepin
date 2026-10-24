@@ -10,6 +10,7 @@ Every public change starts from a tracked task and records its scope here.
 | TIDEDEMO-7 | Verify owner-managed DNS, bind a free managed certificate to the existing app, preserve the binding in private parameters and verify HTTPS health plus HTTP redirection after a redeploy. | Complete |
 | TIDEDEMO-8 | Apply source Tidepin color, typography, spacing and motion tokens, with system light/dark appearance and accessible contrast preferences. | Complete |
 | TIDEDEMO-10 | Add the source-style top bar, user-requested full screen and Settings dialog with feet/meters height, 12/24-hour clock and preference-only Reset; publish one shared preference contract for every displayed height. | In progress |
+| TIDEDEMO-11 | Add a separate location picker with Maps pin/place search/current location, nearest NOAA prediction-station lookup, validated station zones, coordinate/station-only storage and alphanumeric station-ID integration with the prediction client. | In progress |
 | TIDEDEMO-12 | Add the three-line NOAA source credit, navigation disclaimer and personal/source footer; keep README wording aligned and external links safe. | Complete |
 | TIDEDEMO-14 | NOAA CO-OPS curve/events client with bounded cache, pacing and typed failures; pure chart, interpolation, station-local DST calculations and frozen fixture tests. | Complete |
 

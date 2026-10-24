@@ -8,6 +8,8 @@ In production, Fastify listens on `0.0.0.0` at `PORT` (8080 by default). `GET /h
 
 In development, Vite serves the client on port 5173 and proxies `/health`, `/api`, and `/assets` to Fastify on port 8080. The server starts without a compiled client, so the health endpoint and original logo remain available while Vite handles the page.
 
+The location picker is a separate Vite HTML entry. Both development and production serve it at `/location`; production Fastify sends `location.html` explicitly. `GET /api/config` returns only browser-safe Maps settings and the demo session limit with `Cache-Control: no-store`. A browser-restricted Maps key is supplied at runtime and never embedded in the build. `POST /api/stations/nearest` accepts only numeric coordinates, and `GET /api/stations/:id` restores public station metadata without persisting its name.
+
 ## Modules and build
 
 `src/server/app.ts` creates a Fastify instance without opening a socket, allowing request-level tests with Fastify injection. `config.ts` validates the process port, and `index.ts` supplies production asset paths and starts the process. `src/client` is plain TypeScript plus CSS. Vitest runs the tests in `test`; ESLint and TypeScript check the complete source tree.
@@ -28,7 +30,9 @@ Links use the accessible accent-text color rather than brand amber on the light 
 
 ## State and privacy
 
-The initial page has no persistence, user input, analytics or location storage. Its prediction client makes upstream requests only when called, and stores predictions only in bounded process memory. Request logging is disabled so future location search URLs do not enter logs. Later location features may retain only coordinates and station identifiers, never addresses or search text. Secrets and environment-specific values belong in private configuration; `.env.example` documents safe settings for local development.
+Location selection stores exactly `{latitude, longitude, stationId}` in the device's `tidepin.location` record. Names are reloaded from NOAA, never persisted. Place search uses Google Places API (New), with debouncing and session tokens; address/query text and suggestions stay only in page memory and are cleared after selection or page exit. Search text is sent directly to Google rather than through the app server. User-coordinate requests use a POST body and request logging is disabled. The server's metadata and prediction caches are bounded process memory, with no database or user-location history.
+
+The picker supports map clicks, a draggable pin and browser geolocation. Save marks a transient, one-shot session return flag and navigates to the display; failure to write device storage keeps the user on the picker with an explanation. Back marks the same return flag without saving a changed pin. A generation guard prevents slow station/search responses from replacing a more recent selection. Missing Maps configuration yields a readable map state and keeps current-location selection available; this does not count as live Maps verification. Secrets and environment-specific values belong in private configuration; `.env.example` documents safe settings for local development.
 
 ## Display controls and preferences
 
