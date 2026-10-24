@@ -41,7 +41,7 @@ The two-stage Node 24 image runs as the non-root `node` user and exposes port 80
 
 `src/server` holds Fastify, `src/client` holds the Vite page, `src/shared` is reserved for pure shared modules, `test` holds Vitest tests, and `assets` holds original brand files. The layout follows the [BoltClock demo](https://github.com/henrique-meyer/boltclock).
 
-See the [system design](docs/system-design.md), [implementation plan](docs/plan.md), and the decisions for [hosting](docs/decisions/0001-hosting.md) and [the stack](docs/decisions/0002-stack.md). Infrastructure templates and CI are separate tasks. Real environment values, private notes, and secrets must stay outside this public repository.
+See the [system design](docs/system-design.md), [implementation plan](docs/plan.md), [infrastructure guide](infra/README.md), and the decisions for [hosting](docs/decisions/0001-hosting.md) and [the stack](docs/decisions/0002-stack.md). Pull-request CI verifies the app, Bicep templates and a running non-root container. Infrastructure is parameterized; provisioning and deployment automation follow separately. Real environment values, private notes, and secrets must stay outside this public repository.
 
 ## License
 

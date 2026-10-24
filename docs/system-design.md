@@ -18,4 +18,10 @@ The container has a build stage and a runtime stage based on `node:24-slim`. Its
 
 The scaffold has no persistence, user input, analytics, upstream requests or location storage. Request logging is disabled so future location search URLs do not enter logs. Later location features may retain only coordinates and station identifiers, never addresses or search text. Secrets and environment-specific values belong in private configuration; `.env.example` documents safe settings for local development.
 
+## Infrastructure and verification
+
+`infra/main.bicep` describes a Consumption Container Apps environment, capped Log Analytics workspace, and optional app, GitHub OIDC deploy identity and monthly budget. Resource names and environment values are parameters. The app allocation is fixed at 0.25 vCPU and 0.5 GiB, scales from zero to at most one replica, and requires HTTPS ingress. Startup, readiness and liveness probes all request the process-health endpoint. The deploy identity reads the resource group and can modify only this app; applying infrastructure requires separate provisioning permissions. Existing verified hostname and certificate parameters retain a later custom-domain binding.
+
+`.github/workflows/pr.yml` checks each PR's exact head: lint, TypeScript, tests and production build, Bicep and example-parameter compilation, then Docker build and a live health/non-root check. These checks require no cloud credentials. The safe parameter example is not deployable until an operator supplies private values. No resources or deploy workflow are created by this change; see the [infrastructure guide](../infra/README.md) for the later provisioning sequence.
+
 See [ADR 0001](decisions/0001-hosting.md) for hosting and [ADR 0002](decisions/0002-stack.md) for the stack. NOAA CO-OPS is the fixed future tide-data source; predictions are not for navigation.
