@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createNoaaClient } from '../src/server/noaa-client.js';
+import { buildChartData } from '../src/shared/tides.js';
 
 const request = { stationId: '0012345', timeZoneId: 'America/New_York', start: 1767225600, end: 1767312000 };
 
@@ -19,6 +20,7 @@ describe('NOAA predictions client', () => {
     const { client, fetcher, starts } = harness();
     const result = await client.getPredictions(request);
     expect(result.curve.status).toBe('fresh');
+    expect(result.curveSource).toBe('sixMinute');
     expect(result.events.status).toBe('fresh');
     expect(fetcher).toHaveBeenCalledTimes(2);
     const calls = fetcher.mock.calls as unknown as [URL, RequestInit][];
@@ -128,13 +130,51 @@ describe('NOAA predictions client', () => {
     await client.getPredictions(request);
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
-  it('allows high/low-only stations without inventing a curve', async () => {
+  it('marks high/low-only stations for explicit display estimation without requesting a sampled curve', async () => {
     const { client, fetcher } = harness();
     const result = await client.getPredictions({ ...request, curveSupported: false });
     expect(result.curve.status).toBe('unsupported');
+    expect(result.curveSource).toBe('estimatedExtremes');
     expect(result.curve.error?.code).toBe('curveUnavailable');
     expect(result.events.status).toBe('fresh');
     expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it('keeps subordinate estimates tied to independently fresh or saved authoritative events', async () => {
+    const { client, fetcher, advance } = harness();
+    const date = (time: number) => new Date(time * 1000).toISOString().slice(0, 16).replace('T', ' ');
+    const times = [request.start - 3600, request.start + 21600, request.start + 43200, request.start + 64800, request.end + 3600];
+    fetcher.mockImplementation(async () => new Response(JSON.stringify({ predictions: times.map((time, index) => ({ t: date(time), v: String(index % 2), type: index % 2 ? 'H' : 'L' })) })));
+    const first = await client.getPredictions({ ...request, curveSupported: false });
+    expect(first.events.status).toBe('fresh');
+    expect(first.curve.data).toBeNull();
+    const snapshot = structuredClone(first.events.data);
+    const data = buildChartData(first.curve.data ?? [], first.events.data ?? [], request, request.start + 1000, true, first.curveSource);
+    expect(data.chartPoints[0]!.time).toBe(request.start);
+    expect(data.chartPoints.at(-1)!.time).toBe(request.end);
+    expect(data.current).not.toBeNull();
+    expect(first.events.data).toEqual(snapshot);
+    advance(21600);
+    fetcher.mockRejectedValue(new Error('offline'));
+    const saved = await client.getPredictions({ ...request, curveSupported: false });
+    expect(saved.events.status).toBe('saved');
+    expect(saved.events.data).toEqual(snapshot);
+    expect(saved.curveSource).toBe('estimatedExtremes');
+    expect(buildChartData([], saved.events.data ?? [], request, request.start + 1000, true, saved.curveSource)).toEqual(data);
+  });
+  it('keeps empty and failed high/low products distinct and never estimates a harmonic failure', async () => {
+    const empty = harness();
+    const none = await empty.client.getPredictions({ ...request, curveSupported: false });
+    expect(none.events.status).toBe('fresh');
+    expect(none.events.data).toEqual([]);
+    expect(buildChartData([], none.events.data ?? [], request, request.start, true, none.curveSource).current).toBeNull();
+    const unavailable = harness();
+    unavailable.fetcher.mockRejectedValue(new Error('offline'));
+    const failed = await unavailable.client.getPredictions({ ...request, curveSupported: false });
+    expect(failed.events.status).toBe('error');
+    expect(failed.events.data).toBeNull();
+    const harmonic = await unavailable.client.getPredictions(request);
+    expect(harmonic.curveSource).toBe('sixMinute');
+    expect(harmonic.curve.data).toBeNull();
   });
   it('accepts NOAA TEC identifiers and rejects invalid/traversal station input', async () => {
     const { client, fetcher } = harness();

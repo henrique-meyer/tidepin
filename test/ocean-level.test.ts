@@ -24,6 +24,16 @@ describe('ocean level from shared chart data', () => {
     expect(samples[0]!.heightMeters).toBe(-1);
   });
 
+  it('uses the exact same estimated chart/current level, with no separate ocean interpolation', () => {
+    const events = [{ time: 0, heightMeters: -1, type: 'L' as const }, { time: 21600, heightMeters: 1, type: 'H' as const }];
+    const estimated = (now: number) => buildChartData([], events, { start: 0, end: 21601 }, now, true, 'estimatedExtremes');
+    expect(oceanLevelFraction(estimated(0))).toBe(0);
+    expect(oceanLevelFraction(estimated(10800))).toBeCloseTo(0.5);
+    expect(oceanLevelFraction(estimated(21600))).toBe(1);
+    expect(oceanLevelFraction(estimated(21601))).toBeNull();
+    expect(oceanLevelFraction(buildChartData([], [events[0]!], { start: 0, end: 21601 }, 100, true, 'estimatedExtremes'))).toBeNull();
+  });
+
   it('returns a neutral state without a current prediction, usable range or finite height', () => {
     const flat = { chartPoints: [{ time: 0, heightMeters: 2 }], current: { time: 0, heightMeters: 2 } };
     for (const data of [null, { ...chartAt(0), current: null }, flat, { ...flat, chartPoints: [] }, { ...flat, current: { time: 0, heightMeters: NaN } }]) {
