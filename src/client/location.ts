@@ -5,7 +5,7 @@ import './location.css';
 import { fetchClientConfig, loadGoogleMaps } from './client-config.js';
 import { currentPosition } from './geolocation.js';
 import { isValidCoordinates, markReturnToDisplay, readLocation, saveLocation, type Coordinates } from './location-settings.js';
-import { googlePlacesBackend, PlaceSearch, type GoogleSuggestion } from './place-search.js';
+import { googlePlacesBackend, PlaceSearch, previousSuggestionIndex, type GoogleSuggestion } from './place-search.js';
 import type { TideStation } from '../shared/stations.js';
 
 const element = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -104,7 +104,7 @@ function setupSearch(places: google.maps.PlacesLibrary): void {
   searchInput.addEventListener('input', () => search.input(searchInput.value));
   searchInput.addEventListener('keydown', event => {
     if (event.key === 'ArrowDown' && shown.length) { event.preventDefault(); highlight((active + 1) % shown.length); }
-    else if (event.key === 'ArrowUp' && shown.length) { event.preventDefault(); highlight((active - 1 + shown.length) % shown.length); }
+    else if (event.key === 'ArrowUp' && shown.length) { event.preventDefault(); highlight(previousSuggestionIndex(active, shown.length)); }
     else if (event.key === 'Enter') { event.preventDefault(); const selected = shown[active >= 0 ? active : 0]; if (selected) void choose(selected); }
     else if (event.key === 'Escape') { searchInput.value = ''; search.input(''); }
   });

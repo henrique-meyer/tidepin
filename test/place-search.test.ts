@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { PlaceSearch, type Suggestion } from '../src/client/place-search.js';
+import { PlaceSearch, previousSuggestionIndex, type Suggestion } from '../src/client/place-search.js';
 
 describe('private in-memory Places search', () => {
   afterEach(() => vi.useRealTimers());
@@ -9,6 +9,13 @@ describe('private in-memory Places search', () => {
     const options = { onSuggestions: vi.fn(), onError: vi.fn() };
     return { backend, options, search: new PlaceSearch(backend, options) };
   }
+  it('starts ArrowUp at the last suggestion before wrapping through prior selections', () => {
+    expect(previousSuggestionIndex(-1, 3)).toBe(2);
+    expect(previousSuggestionIndex(-1, 2)).toBe(1);
+    expect(previousSuggestionIndex(2, 3)).toBe(1);
+    expect(previousSuggestionIndex(0, 3)).toBe(2);
+    expect(previousSuggestionIndex(-1, 0)).toBe(-1);
+  });
   it('debounces input, rejects short queries and uses one billing token until selection', async () => {
     const { search, backend } = harness();
     search.input('ab'); await vi.advanceTimersByTimeAsync(500); expect(backend.suggest).not.toHaveBeenCalled();

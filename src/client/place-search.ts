@@ -14,6 +14,12 @@ export interface PlaceSearchOptions<S> {
   minChars?: number;
 }
 
+/** ArrowUp enters an unselected list at its last item, then wraps normally. */
+export function previousSuggestionIndex(active: number, count: number): number {
+  if (count < 1) return -1;
+  return active < 0 ? count - 1 : (active - 1 + count) % count;
+}
+
 /** BoltClock's session/debounce approach; text and suggestions exist only in memory. */
 export class PlaceSearch<S extends Suggestion, Token> {
   private token: Token | undefined;
