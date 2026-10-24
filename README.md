@@ -2,7 +2,11 @@
 
 A web demo for viewing NOAA CO-OPS tide predictions. The initial scaffold contains a Tidepin logo placeholder and a process-health endpoint; the tide graph and application screens follow in separate tasks.
 
-**Predictions only. Not for navigation.** Tide prediction data is provided by [NOAA CO-OPS](https://tidesandcurrents.noaa.gov). The demo is not a source of navigational guidance.
+[Tide predictions: NOAA CO-OPS (tidesandcurrents.noaa.gov)](https://tidesandcurrents.noaa.gov)
+
+**Predictions only. Not for navigation.**
+
+Designed & built by Henrique Meyer · [Source on GitHub](https://github.com/henrique-meyer/tidepin)
 
 ## Run locally
 
@@ -39,9 +43,11 @@ The two-stage Node 24 image runs as the non-root `node` user and exposes port 80
 
 ## Project layout
 
-`src/server` holds Fastify, `src/client` holds the Vite page, `src/shared` is reserved for pure shared modules, `test` holds Vitest tests, and `assets` holds original brand files. The layout follows the [BoltClock demo](https://github.com/henrique-meyer/boltclock).
+`src/server` holds Fastify and the NOAA predictions client, `src/client` holds the Vite page, `src/shared/tides.ts` holds pure chart, interpolation and station-local time computations, `test` holds Vitest tests and frozen fixtures, and `assets` holds original brand files. The prediction modules are ready for the later browser/API integration. The layout follows the [BoltClock demo](https://github.com/henrique-meyer/boltclock).
 
 See the [system design](docs/system-design.md), [implementation plan](docs/plan.md), [infrastructure guide](infra/README.md), and the decisions for [hosting](docs/decisions/0001-hosting.md) and [the stack](docs/decisions/0002-stack.md). Pull-request CI verifies the app, Bicep templates and a running non-root container. Infrastructure is parameterized; provisioning and deployment automation follow separately. Real environment values, private notes, and secrets must stay outside this public repository.
+
+The page footer displays the NOAA source link, the navigation disclaimer on its own line and the personal/source credit above. Its external links open in a new tab with `rel="noopener"`. The footer wraps on narrow screens and uses the Tidepin footnote and color tokens; the current page content remains a placeholder for the later application screens.
 
 ## License
 
