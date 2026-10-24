@@ -1,22 +1,189 @@
-/* A placeholder only; the full theme follows in its own task. */
+/* Tidepin source design tokens. Theme follows the system; no local preference is stored. */
 :root {
-  color: #0c2340;
-  background: #fbf7ee;
+  --color-background: #fbf7ee;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f3ede0;
+  --color-text-primary: #0c2340;
+  --color-text-secondary: #4b5a6e;
+  --color-text-tertiary: #5e6a7a;
+  --color-primary: #0c2340;
+  --color-on-primary: #fbf7ee;
+  --color-accent: #f2a900;
+  --color-on-accent: #0c2340;
+  --color-accent-text: #9a5b00;
+  --color-separator: #d9d2c3;
+  --color-border: #7d838d;
+  --color-error: #b3261e;
+  --color-success: #1f7a4d;
+  --color-disabled-content: #9aa3ae;
+  --color-disabled-container: #ece6d8;
+  --color-selected-container: #0c2340;
+  --color-on-selected: #fbf7ee;
+  --color-banner-container: #f3ede0;
+  --color-on-banner: #0c2340;
+  --color-toggle-on: #1f7a4d;
+  --color-scrim: rgba(12, 35, 64, 0.4);
+  --chart-curve: #0c2340;
+  --chart-fill: rgba(12, 35, 64, 0.14);
+  --chart-now-line: #9a5b00;
+  --chart-grid: #e4ddce;
+
+  /* Source iOS text roles, expressed in rem so browser font scaling still works. */
+  --font-screen-title-size: 2.125rem;
+  --font-screen-title-line-height: 2.5625rem;
+  --font-screen-title-weight: 700;
+  --font-station-title-size: 1.375rem;
+  --font-station-title-line-height: 1.75rem;
+  --font-station-title-weight: 700;
+  --font-sheet-title-size: 1.0625rem;
+  --font-sheet-title-line-height: 1.375rem;
+  --font-sheet-title-weight: 600;
+  --font-value-large-size: 2.125rem;
+  --font-value-large-line-height: 2.5625rem;
+  --font-value-large-weight: 700;
+  --font-value-size: 1.375rem;
+  --font-value-line-height: 1.75rem;
+  --font-value-weight: 600;
+  --font-body-size: 1.0625rem;
+  --font-body-line-height: 1.375rem;
+  --font-body-weight: 400;
+  --font-body-emphasis-weight: 600;
+  --font-secondary-size: 0.9375rem;
+  --font-secondary-line-height: 1.25rem;
+  --font-footnote-size: 0.8125rem;
+  --font-footnote-line-height: 1.125rem;
+  --font-caption-size: 0.75rem;
+  --font-caption-line-height: 1rem;
+  --font-chip-size: 1.0625rem;
+  --font-chip-line-height: 1.375rem;
+  --font-chip-weight: 600;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-9: 36px;
+  --radius-card: 12px;
+  --radius-chip: 12px;
+  --radius-field: 10px;
+  --radius-button: 12px;
+  --motion-fast: 150ms;
+  --motion-standard: 250ms;
+  --motion-chart-draw: 400ms;
+
+  color-scheme: light;
+  color: var(--color-text-primary);
+  background: var(--color-background);
   font-family: system-ui, sans-serif;
+  font-size: 100%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #071526;
+    --color-surface: #0f2238;
+    --color-surface-sunken: #17304d;
+    --color-text-primary: #f6f0e1;
+    --color-text-secondary: #b4becb;
+    --color-text-tertiary: #8d99a8;
+    --color-primary: #f2a900;
+    --color-on-primary: #071526;
+    --color-accent: #f2a900;
+    --color-on-accent: #071526;
+    --color-accent-text: #f2a900;
+    --color-separator: #22395a;
+    --color-border: #6e7c8f;
+    --color-error: #ffb4ab;
+    --color-success: #7fd6a4;
+    --color-disabled-content: #5d6a7b;
+    --color-disabled-container: #132a45;
+    --color-selected-container: #f2a900;
+    --color-on-selected: #071526;
+    --color-banner-container: #17304d;
+    --color-on-banner: #f6f0e1;
+    --color-toggle-on: #7fd6a4;
+    --color-scrim: rgba(0, 0, 0, 0.55);
+    --chart-curve: #9cc3f0;
+    --chart-fill: rgba(156, 195, 240, 0.2);
+    --chart-now-line: #f2a900;
+    --chart-grid: #1c3352;
+
+    color-scheme: dark;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --color-text-secondary: var(--color-text-primary);
+    --color-text-tertiary: var(--color-text-primary);
+    --color-separator: var(--color-border);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-standard: 0ms;
+    --motion-chart-draw: 0ms;
+  }
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
   min-height: 100svh;
   display: grid;
-  place-items: center;
+  color: var(--color-text-primary);
+  background: var(--color-background);
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-line-height);
+  font-weight: var(--font-body-weight);
 }
 
 main {
-  padding: 32px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-8);
   text-align: center;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  margin: 0;
+  font-size: var(--font-screen-title-size);
+  line-height: var(--font-screen-title-line-height);
+  font-weight: var(--font-screen-title-weight);
+}
+
+p {
+  margin: 0;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+img {
+  max-width: 100%;
+  object-fit: contain;
 }
 
 a {
-  color: #9a5b00;
+  color: var(--color-accent-text);
+}
+
+:focus-visible {
+  outline-color: var(--color-primary);
 }
