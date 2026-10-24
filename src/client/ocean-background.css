@@ -30,6 +30,41 @@
   opacity: 0.5;
 }
 
+.ocean-waves {
+  display: none;
+  position: absolute;
+  top: -3px;
+  left: 0;
+  width: 200%;
+  height: 6px;
+  overflow: visible;
+  fill: none;
+  stroke: var(--ocean-line);
+  stroke-width: 1;
+  transform-box: border-box;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ocean-background[data-state="tide"] .ocean-water {
+    border-top-color: transparent;
+  }
+
+  .ocean-background[data-state="tide"] .ocean-waves {
+    display: block;
+    animation: ocean-drift 36s linear infinite;
+  }
+
+  .ocean-background[data-motion="paused"] .ocean-waves {
+    animation-play-state: paused;
+  }
+}
+
+/* Only this six-pixel surface strip moves; the water body and tide-level mapping stay fixed. */
+@keyframes ocean-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 @media (prefers-color-scheme: dark) {
   .ocean-background {
     --ocean-water-top: color-mix(in srgb, var(--chart-curve) 6%, var(--color-background));
