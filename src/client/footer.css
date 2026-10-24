@@ -1,0 +1,27 @@
+/* Footer roles use the Tidepin source-credit tokens, including before theme integration. */
+.demo-page {
+  grid-template-rows: 1fr auto;
+}
+
+.site-footer {
+  align-self: end;
+  box-sizing: border-box;
+  display: grid;
+  gap: var(--space-1, 4px);
+  max-inline-size: 100%;
+  padding: var(--space-4, 16px);
+  color: var(--color-text-tertiary, #5e6a7a);
+  font-size: var(--font-footnote-size, 13px);
+  line-height: var(--font-footnote-line-height, 18px);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+.site-footer a {
+  color: var(--color-accent-text, #9a5b00);
+}
+

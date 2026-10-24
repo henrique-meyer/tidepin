@@ -16,6 +16,8 @@ In development, Vite serves the client on port 5173 and proxies `/health`, `/api
 
 `src/shared/tides.ts` holds pure normalization, six-minute-limited interpolation, segmented chart points, separate day markers and next events, station-local calendar windows and unit/time formatting. Chart coordinates use elapsed seconds; canonical meters remain unchanged. A supplied IANA zone governs station dates, including DST, while requests use GMT to avoid ambiguous timestamps. See [data sources](data-sources.md) for the API contract, cache behavior and deterministic fixtures.
 
+The page has a semantic three-line footer: linked NOAA CO-OPS credit, a separate navigation disclaimer and the personal/source credit. External links open in a new tab with `rel="noopener"`. Its isolated `footer.css` uses the source-credit typography/color tokens and allows wrapping on narrow screens; the main placeholder content remains separate from the footer. A flexible main row keeps the footer at the bottom without fixing it over future chart content.
+
 The container has a build stage and a runtime stage based on `node:24-slim`. Its runtime contains production dependencies, compiled output and original brand assets, and runs as the unprivileged `node` user. Local configuration, notes, tests and infrastructure files are excluded from the container context.
 
 ## Appearance
