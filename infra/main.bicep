@@ -37,8 +37,9 @@ param googleMapsApiKey string = ''
 @description('Public base URL. Empty uses the generated Container Apps address.')
 param publicBaseUrl string = ''
 
-@minValue(0)
-@description('Display session duration in minutes; enforcement is implemented by the session feature.')
+@minValue(1)
+@maxValue(120)
+@description('Display session duration in minutes (1–120), enforced by the browser session timer.')
 param sessionLimitMinutes int = 120
 
 @description('Previously verified hostname to retain on subsequent deployments. Empty skips binding.')
