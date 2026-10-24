@@ -300,6 +300,7 @@ var dashboardResourceIds = concat(
   createDeployIdentity ? [deployIdentity!.id, deployFederation!.id, deployReadsGroup!.id] : [],
   createDeployIdentity && deployApp ? [deployUpdatesApp!.id] : [],
   createBudget ? [budget!.id] : [],
+  bindCustomDomain ? [customDomainCertificateId] : [],
   [resourceId('Microsoft.Portal/dashboards', dashboardResolvedName)]
 )
 var dashboardResourceLinks = [for id in dashboardResourceIds: '- [${last(split(id, '/'))}](https://portal.azure.com/#resource${id})']
