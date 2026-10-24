@@ -1,0 +1,183 @@
+.display-controls {
+  align-self: stretch;
+  width: 100%;
+}
+
+.topbar {
+  position: relative;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+}
+
+.topbar-mark {
+  width: var(--space-9);
+  height: var(--space-9);
+}
+
+.topbar-name {
+  font-size: var(--font-station-title-size);
+  line-height: var(--font-station-title-line-height);
+  font-weight: var(--font-station-title-weight);
+}
+
+.topbar-location {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-secondary-size);
+  line-height: var(--font-secondary-line-height);
+  overflow-wrap: anywhere;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.topbar-actions .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: calc(var(--space-6) + var(--space-5));
+  min-height: calc(var(--space-6) + var(--space-5));
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-footnote-size);
+  line-height: var(--font-footnote-line-height);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.topbar-actions .icon-button:hover {
+  background: var(--color-surface-sunken);
+}
+
+.topbar-actions svg {
+  width: var(--space-6);
+  height: var(--space-6);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.topbar-actions [hidden] {
+  display: none;
+}
+
+/* Match the source display: the kiosk view hides controls until the user leaves full screen. */
+:root:fullscreen .topbar-actions {
+  display: none;
+}
+
+@media (display-mode: fullscreen) {
+  .topbar-actions {
+    display: none;
+  }
+}
+
+.display-settings {
+  max-width: calc(100vw - var(--space-8));
+  width: 32rem;
+  max-height: calc(100svh - var(--space-8));
+  overflow: auto;
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  text-align: left;
+}
+
+.display-settings::backdrop {
+  background: var(--color-scrim);
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.settings-form h2 {
+  margin: 0;
+  font-size: var(--font-sheet-title-size);
+  line-height: var(--font-sheet-title-line-height);
+  font-weight: var(--font-sheet-title-weight);
+}
+
+.settings-units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.settings-units label {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 8rem;
+}
+
+.settings-units select,
+.settings-footer button {
+  min-height: calc(var(--space-6) + var(--space-5));
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-field);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+}
+
+.settings-note,
+.settings-feedback {
+  margin: 0;
+  font-size: var(--font-footnote-size);
+  line-height: var(--font-footnote-line-height);
+  color: var(--color-text-secondary);
+}
+
+.settings-feedback:empty {
+  display: none;
+}
+
+.settings-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.settings-footer button {
+  cursor: pointer;
+}
+
+.settings-footer .settings-done {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-weight: var(--font-body-emphasis-weight);
+}
+
+@media (max-width: 40rem) {
+  .topbar-actions .button-label {
+    display: none;
+  }
+
+  .topbar-location {
+    order: 1;
+    flex-basis: 100%;
+  }
+}
