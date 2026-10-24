@@ -13,6 +13,6 @@ Every public change starts from a tracked task and records its scope here.
 | TIDEDEMO-11 | Add a separate location picker with Maps pin/place search/current location, nearest NOAA prediction-station lookup, validated station zones, coordinate/station-only storage and alphanumeric station-ID integration with the prediction client. | In progress |
 | TIDEDEMO-12 | Add the three-line NOAA source credit, navigation disclaimer and personal/source footer; keep README wording aligned and external links safe. | Complete |
 | TIDEDEMO-14 | NOAA CO-OPS curve/events client with bounded cache, pacing and typed failures; pure chart, interpolation, station-local DST calculations and frozen fixture tests. | Complete |
-| TIDEDEMO-18 | Apply the owner-selected source-available noncommercial project license, metadata, branding terms and runtime distribution notice. | Implemented; verification |
+| TIDEDEMO-18 | Apply the owner-selected source-available noncommercial project license, metadata, branding terms, browser bundle notice and runtime license copy. | Implemented; verification |
 
 The scaffold contains a logo placeholder and health endpoint. Infrastructure templates and PR checks are separate from resource provisioning and deployment. The data modules are implemented separately from the upcoming tide-data HTTP and UI integration. NOAA predictions only; not for navigation.
