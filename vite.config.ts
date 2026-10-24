@@ -17,7 +17,8 @@ export default defineConfig({
     assetsDir: 'static',
     rolldownOptions: {
       input: { main: resolve('src/client/index.html'), location: resolve('src/client/location.html') },
-      output: { banner: licenseBanner },
+      // Distribution notices must remain intact after browser-code minification.
+      output: { postBanner: licenseBanner },
     },
   },
   server: {
