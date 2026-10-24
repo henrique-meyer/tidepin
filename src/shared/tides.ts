@@ -3,6 +3,8 @@ export interface TideSample { time: number; heightMeters: number }
 export interface TideEvent extends TideSample { type: 'H' | 'L' }
 export interface TideWindow { start: number; end: number }
 export type HeightUnit = 'ft' | 'm';
+/** A display estimate is explicitly distinct from NOAA's sampled prediction product. */
+export type CurveSource = 'sixMinute' | 'estimatedExtremes';
 export type ParsedProduct<T> = { ok: true; data: T[] } | { ok: false; message: string };
 
 export function parseNoaaTime(value: unknown): number | null {
@@ -53,10 +55,52 @@ export function interpolateHeight(samples: readonly TideSample[], time: number):
   return null;
 }
 
-export function buildChartData(samples: readonly TideSample[], events: readonly TideEvent[], window: TideWindow, now: number, isToday: boolean) {
+function validExtremes(events: readonly TideEvent[]): boolean {
+  return events.every((event, index) => Number.isFinite(event.time) && Number.isFinite(event.heightMeters)
+    && (event.type === 'H' || event.type === 'L') && (index === 0 || event.time > events[index - 1]!.time));
+}
+
+function estimateBetweenExtremes(events: readonly TideEvent[], time: number): number | null {
+  if (!Number.isFinite(time) || !events.length || time < events[0]!.time || time > events.at(-1)!.time) return null;
+  let low = 0;
+  let high = events.length;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    if (events[middle]!.time < time) low = middle + 1;
+    else high = middle;
+  }
+  const after = events[low]!;
+  if (after.time === time) return after.heightMeters;
+  const before = events[low - 1]!;
+  const fraction = (time - before.time) / (after.time - before.time);
+  const weight = (1 - Math.cos(Math.PI * fraction)) / 2;
+  return before.heightMeters + (after.heightMeters - before.heightMeters) * weight;
+}
+
+/** Half-cosine estimate between consecutive real predicted extremes; never extrapolates. */
+export function estimateHeightFromExtremes(events: readonly TideEvent[], time: number): number | null {
+  return validExtremes(events) ? estimateBetweenExtremes(events, time) : null;
+}
+
+function estimatedChartPoints(events: readonly TideEvent[], window: TideWindow): TideSample[] {
+  if (!events.length) return [];
+  const start = Math.max(window.start, events[0]!.time);
+  const end = Math.min(window.end, events.at(-1)!.time);
+  if (start > end) return [];
+  // Bound plotting work to the largest window accepted by the server client.
+  if (end - start > 366 * 86400 || Math.abs(start) > 8e12 || Math.abs(end) > 8e12) throw new RangeError('Invalid estimated chart window.');
+  const times = new Set([start, end]);
+  for (let time = Math.ceil(start / 360) * 360; time <= end; time += 360) times.add(time);
+  for (const event of events) if (event.time >= start && event.time <= end) times.add(event.time);
+  return [...times].sort((a, b) => a - b).map(time => ({ time, heightMeters: estimateBetweenExtremes(events, time)! }));
+}
+
+export function buildChartData(samples: readonly TideSample[], events: readonly TideEvent[], window: TideWindow, now: number, isToday: boolean, curveSource: CurveSource = 'sixMinute') {
   if (!Number.isFinite(window.start) || !Number.isFinite(window.end) || window.end <= window.start) throw new RangeError('Invalid chart window.');
-  const points = samples.filter(sample => sample.time >= window.start && sample.time <= window.end).map(sample => ({ ...sample }));
-  for (const time of [window.start, window.end]) {
+  const estimated = curveSource === 'estimatedExtremes';
+  const usableExtremes = estimated && validExtremes(events);
+  const points = estimated ? usableExtremes ? estimatedChartPoints(events, window) : [] : samples.filter(sample => sample.time >= window.start && sample.time <= window.end).map(sample => ({ ...sample }));
+  for (const time of estimated ? [] : [window.start, window.end]) {
     if (!points.some(point => point.time === time)) {
       const heightMeters = interpolateHeight(samples, time);
       if (heightMeters !== null) points.push({ time, heightMeters });
@@ -70,9 +114,10 @@ export function buildChartData(samples: readonly TideSample[], events: readonly 
     else segment.push(point);
   }
   const future = events.filter(event => event.time >= now).slice().sort((a, b) => a.time - b.time || (a.type === 'H' ? -1 : 1));
-  const currentHeight = isToday && now >= window.start && now < window.end ? interpolateHeight(samples, now) : null;
+  const currentHeight = isToday && now >= window.start && now < window.end
+    ? estimated ? usableExtremes ? estimateBetweenExtremes(events, now) : null : interpolateHeight(samples, now) : null;
   return {
-    chartPoints, segments,
+    curveSource, chartPoints, segments,
     markers: events.filter(event => event.time >= window.start && event.time < window.end),
     current: currentHeight === null ? null : { time: now, heightMeters: currentHeight },
     nextHigh: future.find(event => event.type === 'H') ?? null,

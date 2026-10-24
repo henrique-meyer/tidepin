@@ -1,7 +1,7 @@
 import type { NoaaError, PredictionProduct, Predictions } from '../shared/tide-response.js';
 export type { NoaaError, PredictionProduct, Predictions } from '../shared/tide-response.js';
 import { createNoaaScheduler, sharedNoaaScheduler, NoaaBackoffError, type NoaaScheduler } from './noaa-scheduler.js';
-import { normalizePredictions, validTimeZone, type TideEvent, type TideSample, type TideWindow } from '../shared/tides.js';
+import { normalizePredictions, validTimeZone, type CurveSource, type TideEvent, type TideSample, type TideWindow } from '../shared/tides.js';
 import { validStationId } from '../shared/stations.js';
 
 export interface PredictionRequest extends TideWindow {
@@ -142,7 +142,8 @@ export function createNoaaClient(options: NoaaClientOptions = {}) {
   }
 
   async function getPredictions(request: PredictionRequest): Promise<Predictions> {
-    const result = { stationId: request.stationId, timeZoneId: request.timeZoneId, datum: 'MLLW' as const, units: 'metric' as const };
+    const curveSource: CurveSource = request.curveSupported === false ? 'estimatedExtremes' : 'sixMinute';
+    const result = { stationId: request.stationId, timeZoneId: request.timeZoneId, datum: 'MLLW' as const, units: 'metric' as const, curveSource };
     let error: NoaaError | null = null;
     if (!validStationId(request.stationId) || !Number.isSafeInteger(request.start) || !Number.isSafeInteger(request.end) || Math.abs(request.start) > 8e12 || Math.abs(request.end) > 8e12 || request.end <= request.start || request.end - request.start > 366 * 86400) {
       error = { code: 'invalidRequest', message: 'A NOAA station and valid prediction window are required.' };
@@ -151,7 +152,7 @@ export function createNoaaClient(options: NoaaClientOptions = {}) {
     }
     if (error) return { ...result, curve: snapshotProduct(emptyProduct<TideSample>(request, error)), events: snapshotProduct(emptyProduct<TideEvent>(request, error)) };
     const [curve, events] = await Promise.all([
-      request.curveSupported === false ? Promise.resolve(emptyProduct<TideSample>(request, { code: 'curveUnavailable', message: 'This station supports high/low predictions only.' }, true)) : loadProduct(request, '6'),
+      request.curveSupported === false ? Promise.resolve(emptyProduct<TideSample>(request, { code: 'curveUnavailable', message: 'NOAA supplies high/low predictions only; a display curve may be estimated from those extremes.' }, true)) : loadProduct(request, '6'),
       loadProduct(request, 'hilo'),
     ]);
     return { ...result, curve: snapshotProduct(curve as PredictionProduct<TideSample>), events: snapshotProduct(events as PredictionProduct<TideEvent>) };

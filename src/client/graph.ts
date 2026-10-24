@@ -29,13 +29,18 @@ export function mountTideGraph(root: HTMLElement, options: GraphOptions = {}) {
     const retryAt = Math.max(products.curve.error?.retryAt ?? 0, products.events.error?.retryAt ?? 0);
     const wait = Math.max(0, Math.ceil(retryAt - now));
     const waitText = wait ? ` Please wait ${wait} seconds before retrying.` : '';
-    if (products.curve.data === null && products.events.data === null) {
+    if (!products.curve.data?.length && !products.events.data?.length) {
       options.onChartData?.(null);
-      root.innerHTML = `<div class="graph-state" role="status"><p><span aria-hidden="true">⚠ </span>NOAA predictions are unavailable. No saved predictions cover this day.${escape(waitText)}</p><button class="graph-retry" type="button" ${loading || wait ? 'disabled' : ''}>Retry predictions</button></div>`;
+      const message = products.curve.status === 'error' || products.events.status === 'error'
+        ? 'NOAA predictions are unavailable. No saved predictions cover this day.'
+        : 'No NOAA tide predictions are available for this station and day.';
+      root.innerHTML = `<div class="graph-state" role="status"><p><span aria-hidden="true">⚠ </span>${message}${escape(waitText)}</p><button class="graph-retry" type="button" ${loading || wait ? 'disabled' : ''}>Retry predictions</button></div>`;
       root.querySelector('button')?.addEventListener('click', () => { void controller.refresh(true); });
       return;
     }
-    const chart = buildChartData(products.curve.data ?? [], products.events.data ?? [], data.window, now, isToday);
+    const curveSource = products.curveSource ?? (products.curve.status === 'unsupported' ? 'estimatedExtremes' : 'sixMinute');
+    const estimated = curveSource === 'estimatedExtremes';
+    const chart = buildChartData(products.curve.data ?? [], products.events.data ?? [], data.window, now, isToday, curveSource);
     options.onChartData?.(chart.chartPoints.length || chart.current ? { chartPoints: chart.chartPoints.map(row => ({ ...row })), current: chart.current ? { ...chart.current } : null } : null);
     options.onStation?.(data.station.name, data.station.id);
     const unit = preferences.heightUnit;
@@ -50,8 +55,7 @@ export function mountTideGraph(root: HTMLElement, options: GraphOptions = {}) {
     const notices = [saved ? 'Showing saved predictions. Refresh is unavailable.' : '', unavailable ? 'Some NOAA predictions are unavailable.' : '', error ?? '', waitText].filter(Boolean);
     const eventCard = (event: TideEvent | null, kind: 'High' | 'Low') => `<article class="graph-card graph-event"><h3>${kind === 'High' ? '↑' : '↓'} Next ${kind.toLowerCase()}</h3><p class="graph-event-time">${event ? escape(localClock(event.time, zone, hour12)) : '—'}</p><p>${event ? escape(height(event.heightMeters)) : 'Unavailable'}</p>${event ? `<p class="graph-footnote">${escape(time(event.time, true))}</p>` : ''}</article>`;
     let chartMarkup: string;
-    if (products.curve.status === 'unsupported') chartMarkup = '<div class="graph-state graph-card"><p>This station supports high/low predictions only. A tide curve is unavailable.</p></div>';
-    else if (!chart.chartPoints.length) chartMarkup = '<div class="graph-state graph-card"><p>No curve predictions are available for this day.</p></div>';
+    if (!chart.chartPoints.length || estimated && !chart.segments.some(segment => segment.length > 1)) chartMarkup = `<div class="graph-state graph-card"><p>${estimated ? 'Not enough predicted highs and lows to estimate a curve for this day.' : 'No curve predictions are available for this day.'}</p></div>`;
     else {
       const width = Math.max(260, root.clientWidth - 24);
       const svgHeight = width < 600 ? 200 : Math.min(360, Math.max(200, window.innerHeight - 820));
@@ -75,14 +79,14 @@ export function mountTideGraph(root: HTMLElement, options: GraphOptions = {}) {
       if (isToday && chart.current && now >= data.window.start && now < data.window.end) {
         const x = geometry.x(now);
         const pill = Math.max(40, Math.min(width - 72, x - 30));
-        marker = `<g><title>Now: ${escape(time(now))}</title><line class="graph-now-line" x1="${x}" x2="${x}" y1="22" y2="${bottom}"/><rect class="graph-now-pill" x="${pill}" y="1" width="60" height="16" rx="8"/><text class="graph-now-label" x="${pill + 30}" y="13" text-anchor="middle">${escape(localClock(now, zone, hour12))}</text><circle class="graph-now-dot" cx="${x}" cy="${geometry.y(chart.current.heightMeters)}" r="6"/></g>`;
+        marker = `<g><title>Now${estimated ? ' (estimated)' : ''}: ${escape(time(now))}</title><line class="graph-now-line" x1="${x}" x2="${x}" y1="22" y2="${bottom}"/><rect class="graph-now-pill" x="${pill}" y="1" width="60" height="16" rx="8"/><text class="graph-now-label" x="${pill + 30}" y="13" text-anchor="middle">${escape(localClock(now, zone, hour12))}</text><circle class="graph-now-dot" cx="${x}" cy="${geometry.y(chart.current.heightMeters)}" r="6"/></g>`;
       }
-      chartMarkup = `<figure class="graph-card graph-chart"><svg viewBox="0 0 ${width} ${svgHeight}" role="img" aria-label="${escape(`NOAA tide predictions in ${unit}, ${date}, ${zone}. ${chart.current ? `Current predicted height ${height(chart.current.heightMeters)} at ${time(now)}.` : 'Current height unavailable.'} High and low details follow in the table.`)}">${grid}${paths}${markers}${eventLabels}${marker}${ticks}</svg><figcaption class="graph-footnote">${escape(zone)} · MLLW · NOAA CO-OPS</figcaption></figure>`;
+      chartMarkup = `<figure class="graph-card graph-chart"><svg viewBox="0 0 ${width} ${svgHeight}" role="img" aria-label="${escape(`${estimated ? 'Estimated tide curve from NOAA predicted highs and lows' : 'NOAA tide predictions'} in ${unit}, ${date}, ${zone}. ${chart.current ? `Current ${estimated ? 'estimated' : 'predicted'} height ${height(chart.current.heightMeters)} at ${time(now)}.` : 'Current height unavailable.'} High and low details follow in the table.`)}">${grid}${paths}${markers}${eventLabels}${marker}${ticks}</svg><figcaption class="graph-footnote">${estimated ? '<span class="graph-estimate-note">Curve estimated from predicted highs and lows.</span> ' : ''}${escape(zone)} · MLLW · NOAA CO-OPS</figcaption></figure>`;
     }
     const rows = chart.markers.map(event => `<tr><th scope="row">${event.type === 'H' ? '↑ High' : '↓ Low'}</th><td>${escape(time(event.time))}</td><td class="graph-table-height">${escape(height(event.heightMeters))}</td></tr>`).join('');
     root.innerHTML = `<p class="graph-meta">${escape(date)} · Station ${escape(data.station.id)}<br>${escape(updated)}</p>
       <div class="graph-status" role="status">${notices.length ? `<p><span aria-hidden="true">⚠ </span>${escape(notices.join(' '))}</p>` : loading ? '<p>Updating predictions…</p>' : ''}</div>
-      <article class="graph-card graph-current"><div><h3>Predicted height now</h3><p class="graph-current-value">${chart.current ? escape(height(chart.current.heightMeters)) : '—'}</p></div><div class="graph-current-context"><p>${escape(time(now))}</p><p class="graph-footnote">${escape(zone)} · MLLW</p>${!chart.current ? '<p class="graph-footnote">Current height unavailable</p>' : ''}</div></article>
+      <article class="graph-card graph-current"><div><h3>${estimated ? 'Estimated' : 'Predicted'} height now</h3><p class="graph-current-value">${chart.current ? escape(height(chart.current.heightMeters)) : '—'}</p></div><div class="graph-current-context"><p>${escape(time(now))}</p><p class="graph-footnote">${escape(zone)} · MLLW</p>${!chart.current ? '<p class="graph-footnote">Current height unavailable</p>' : ''}</div></article>
       <div class="graph-events">${eventCard(chart.nextHigh, 'High')}${eventCard(chart.nextLow, 'Low')}</div>
       ${chartMarkup}<section class="graph-table-section"><h3>High &amp; low tides</h3><div class="graph-table-scroll"><table><caption class="graph-sr-only">${escape(date)}, ${escape(zone)}, predicted heights relative to MLLW</caption><thead><tr><th scope="col">Event</th><th scope="col">Station time</th><th scope="col">Height (${unit})</th></tr></thead><tbody>${rows || `<tr><td colspan="3">${products.events.data === null ? 'High/low predictions are unavailable.' : 'No high or low tides in this day.'}</td></tr>`}</tbody></table></div></section>
       <div class="graph-refresh"><p class="graph-footnote">Predicted heights relative to MLLW. Not for navigation.</p><button class="graph-retry" type="button" ${loading || wait ? 'disabled' : ''}>Refresh predictions</button></div>`;

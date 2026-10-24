@@ -22,6 +22,8 @@ export function parseTideResponse(value: unknown, stationId: string): TideRespon
     }
     return true;
   }
+  const source = data.predictions.curveSource;
+  if (source !== undefined && source !== (station.curveSupported ? 'sixMinute' : 'estimatedExtremes')) throw new Error('Invalid curve source.');
   if (!product(data.predictions.curve, false) || !product(data.predictions.events, true)) throw new Error('Invalid tide products.');
   return data;
 }

@@ -1,4 +1,4 @@
-import type { TideEvent, TideSample, TideWindow } from './tides.js';
+import type { CurveSource, TideEvent, TideSample, TideWindow } from './tides.js';
 import type { TideStation } from './stations.js';
 
 export interface NoaaError {
@@ -18,6 +18,8 @@ export interface Predictions {
   timeZoneId: string;
   datum: 'MLLW';
   units: 'metric';
+  /** Always supplied by the server; optional only for older response fixtures. */
+  curveSource?: CurveSource;
   curve: PredictionProduct<TideSample>;
   events: PredictionProduct<TideEvent>;
 }
