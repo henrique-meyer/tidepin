@@ -59,4 +59,6 @@ The page footer displays the NOAA source link, the navigation disclaimer on its 
 
 ## License
 
-[MIT](LICENSE). Original Tidepin logo artwork is included without alteration.
+Tidepin Demo is source-available for noncommercial use under [PolyForm-Noncommercial-1.0.0](LICENSE). This is not an OSI-approved license. Commercial use requires permission from the author.
+
+The Tidepin name, logos and artwork are not licensed for reuse. Third-party dependencies and data retain their own licenses and notices; the project license does not replace those terms.

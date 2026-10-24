@@ -1,0 +1,2 @@
+# Preserve the exact upstream project license bytes across checkouts.
+/LICENSE text eol=lf
