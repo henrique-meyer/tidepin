@@ -1,6 +1,6 @@
 # System design
 
-The demo is one stateless Node 24 process with a browser client. This document describes the scaffold and prediction-data modules; application screens and HTTP integration arrive through later tasks.
+The demo is one stateless Node 24 process with a browser client. This document describes its Start/display shell and prediction-data modules; tide graph rendering arrives through a later task.
 
 ## Request flow
 
@@ -18,11 +18,15 @@ The location picker is a separate Vite HTML entry. Both development and producti
 
 `src/shared/tides.ts` holds pure normalization, six-minute-limited interpolation, segmented chart points, separate day markers and next events, station-local calendar windows and unit/time formatting. Chart coordinates use elapsed seconds; canonical meters remain unchanged. A supplied IANA zone governs station dates, including DST, while requests use GMT to avoid ambiguous timestamps. See [data sources](data-sources.md) for the API contract, cache behavior and deterministic fixtures.
 
-The page has a semantic three-line footer: linked NOAA CO-OPS credit, a separate navigation disclaimer and the personal/source credit. External links open in a new tab with `rel="noopener"`. Its isolated `footer.css` uses the source-credit typography/color tokens and allows wrapping on narrow screens; the main placeholder content remains separate from the footer. A flexible main row keeps the footer at the bottom without fixing it over future chart content.
+The page has a semantic three-line footer: linked NOAA CO-OPS credit, a separate navigation disclaimer and the personal/source credit. External links open in a new tab with `rel="noopener"`. Its isolated `footer.css` uses the source-credit typography/color tokens and allows wrapping on narrow screens; the main display content remains separate from the footer. A flexible main row keeps the footer at the bottom without fixing it over chart content.
 
 The container has a build stage and a runtime stage based on `node:24-slim`. Its runtime contains production dependencies, compiled output, original brand assets and the project license with its required notice, and runs as the unprivileged `node` user. Generated browser JavaScript bundles also carry the license URL and exact required notice. Local configuration, notes, tests and infrastructure files are excluded from the container context. The project is source-available for noncommercial use; see [the license terms and branding restrictions](../README.md#license). Third-party components retain their separate terms.
 
 ## Appearance
+
+The Start screen uses the original logo, Tidepin name, a Start display action and the existing three-line NOAA/disclaimer/credit footer. A saved station is reused without requesting browser location. On a first visit the browser can supply coordinates or the user can open the map picker; denied/unavailable positions leave that picker accessible. Browser coordinates resolve to a NOAA prediction station before Start becomes available, and only coordinates/station ID are saved when starting. Returning from a saved picker selection opens the display once; an ordinary reload presents Start.
+
+`DisplayController` owns the Start/display lifecycle and protects it against late permission responses. `tidepin:display-start` and `tidepin:preferences-changed` events expose the selected station and preferences to later graph/session features. A `tidepin:session-ended` event returns to Start with the explicit session-ended message while retaining the selected station. Session timing and graph rendering remain separate tasks. The station heading and graph mount are kept separate from the splash and toolbar.
 
 The browser follows the system's light or dark appearance through `prefers-color-scheme`; changes take effect immediately without a reload or a stored theme preference. CSS custom properties use the Tidepin source design tokens for colors, chart colors, typography, spacing, radii and motion. Text uses system fonts with the source iOS type-role sizes in rem, so browser font scaling continues to work. Later components reuse these properties rather than inventing values.
 
@@ -30,7 +34,7 @@ Links use the accessible accent-text color rather than brand amber on the light 
 
 ## State and privacy
 
-Location selection stores exactly `{latitude, longitude, stationId}` in the device's `tidepin.location` record. Names are reloaded from NOAA, never persisted. Place search uses Google Places API (New), with debouncing and session tokens; address/query text and suggestions stay only in page memory and are cleared after selection or page exit. Search text is sent directly to Google rather than through the app server. User-coordinate requests use a POST body and request logging is disabled. The server's metadata and prediction caches are bounded process memory, with no database or user-location history.
+Location selection stores exactly `{latitude, longitude, stationId}` in the device's `tidepin.location` record. Names are reloaded from NOAA, never persisted. If device storage is blocked, Start display can still use its current selection in memory. Place search uses Google Places API (New), with debouncing and session tokens; address/query text and suggestions stay only in page memory and are cleared after selection or page exit. Search text is sent directly to Google rather than through the app server. User-coordinate requests use a POST body and request logging is disabled. The server's metadata and prediction caches are bounded process memory, with no database or user-location history.
 
 The picker supports map clicks, a draggable pin and browser geolocation. Save marks a transient, one-shot session return flag and navigates to the display; failure to write device storage keeps the user on the picker with an explanation. Back marks the same return flag without saving a changed pin. A generation guard prevents slow station/search responses from replacing a more recent selection. Missing Maps configuration yields a readable map state and keeps current-location selection available; this does not count as live Maps verification. Secrets and environment-specific values belong in private configuration; `.env.example` documents safe settings for local development.
 
