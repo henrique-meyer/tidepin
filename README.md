@@ -2,9 +2,7 @@
 
 A web demo for viewing NOAA CO-OPS tide predictions. The Start display flow, location picker and shared display controls are implemented; tide graph rendering follows in its own task.
 
-[Tide predictions: NOAA CO-OPS (tidesandcurrents.noaa.gov)](https://tidesandcurrents.noaa.gov)
-
-**Predictions only. Not for navigation.**
+[Tide predictions: NOAA CO-OPS (tidesandcurrents.noaa.gov)](https://tidesandcurrents.noaa.gov). **Not for navigation.**
 
 Designed & built by Henrique Meyer · [Source on GitHub](https://github.com/henrique-meyer/tidepin)
 
@@ -61,7 +59,7 @@ The two-stage Node 24 image runs as the non-root `node` user and exposes port 80
 
 See the [system design](docs/system-design.md), [implementation plan](docs/plan.md), [infrastructure guide](infra/README.md), and the decisions for [hosting](docs/decisions/0001-hosting.md) and [the stack](docs/decisions/0002-stack.md). Pull-request CI verifies the app, Bicep templates and a running non-root container. Parameterized infrastructure includes a shared resource dashboard; main-branch deployment publishes a container and updates the app through OIDC. Real environment values, private notes, and secrets must stay outside this public repository.
 
-The page footer displays the NOAA source link, the navigation disclaimer on its own line and the personal/source credit above. Its external links open in a new tab with `rel="noopener"`. The footer wraps on narrow screens and uses the Tidepin footnote and color tokens on both the Start and display screens.
+The page footer combines the NOAA source link and “Not for navigation.” in one paragraph: “Tide predictions: NOAA CO-OPS (tidesandcurrents.noaa.gov). Not for navigation.” The personal/source credit stays separate. Its external links open in a new tab with `rel="noopener"`. The paragraph wraps naturally on narrow screens and uses the Tidepin footnote and color tokens on the Start, display and location pages.
 
 ## License
 

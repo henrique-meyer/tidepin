@@ -1,6 +1,6 @@
 # Tide prediction data
 
-Tide predictions: [NOAA CO-OPS](https://tidesandcurrents.noaa.gov/). **Predictions only. Not for navigation.** These are predicted heights relative to Mean Lower Low Water (MLLW), not observed water levels.
+Tide predictions: [NOAA CO-OPS](https://tidesandcurrents.noaa.gov/). **Not for navigation.** These are predicted heights relative to Mean Lower Low Water (MLLW), not observed water levels.
 
 ## Requests and normalization
 
