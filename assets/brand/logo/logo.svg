@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Tidepin">
+  <rect width="64" height="64" rx="14" fill="#0C2340"/>
+  <path fill="#F4F0E6" stroke="#CDBFA8" stroke-width="1.25" stroke-linejoin="round" fill-rule="evenodd" d="M32 9C21.5 9 14 16.8 14 27C14 39 32 55 32 55S50 39 50 27C50 16.8 42.5 9 32 9ZM38.5 24.5A6.5 6.5 0 1 1 25.5 24.5A6.5 6.5 0 1 1 38.5 24.5Z"/>
+  <path fill="#E4D8C4" d="M32 55S50 39 50 27C50 18.7 44.7 11.9 37.2 9.7C43.3 14.8 45.3 20.7 44.5 28C43.5 38.2 36.3 48.5 32 55Z"/>
+  <path fill="#1E8FD5" d="M9 38C15 38 17 29 24 29C31 29 33 39 41 39C47 39 51 34 55 31V40C50 46 43 49 36 46C29 43 27 37 22 37C17 37 15 43 9 44Z"/>
+  <path fill="#1874B8" d="M9 42C15 41 17 34 22 34C28 34 30 42 37 44C44 47 50 41 55 37V40C50 46 43 49 36 46C29 43 27 37 22 37C17 37 15 43 9 44Z"/>
+</svg>
