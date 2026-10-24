@@ -24,6 +24,7 @@ param customDomainCertificateId = ''
 param deployIdentityName = '<deploy-identity>'
 param githubFederationSubject = ''
 param federationCredentialName = 'github-production'
+param dashboardName = ''
 
 // Optional cost notification. A budget is not a hard spending limit.
 param budgetAmount = 0

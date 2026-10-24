@@ -56,6 +56,9 @@ param githubFederationSubject string = ''
 @description('Federated credential name within the deploy identity.')
 param federationCredentialName string = 'github-production'
 
+@description('Shared dashboard name. Empty skips the dashboard during bootstrap.')
+param dashboardName string = ''
+
 @minValue(0)
 @description('Optional monthly resource-group budget in the billing currency. Zero skips it.')
 param budgetAmount int = 0
@@ -78,6 +81,7 @@ var createDeployIdentity = !empty(githubFederationSubject)
 var deployIdentityResolvedName = empty(deployIdentityName) ? '${containerAppName}-deploy' : deployIdentityName
 var bindCustomDomain = !empty(customDomainName) && !empty(customDomainCertificateId)
 var createBudget = budgetAmount > 0 && !empty(budgetContactEmails)
+var dashboardResolvedName = empty(dashboardName) ? 'project-resources' : dashboardName
 var defaultBaseUrl = 'https://${containerAppName}.${containerEnv.properties.defaultDomain}'
 
 resource law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
@@ -284,6 +288,67 @@ resource budget 'Microsoft.Consumption/budgets@2023-11-01' = if (createBudget) {
         threshold: 100
         contactEmails: budgetContactEmails
         thresholdType: 'Forecasted'
+      }
+    }
+  }
+}
+
+// Links cover every resource described by this deployment, including its dashboard.
+var dashboardResourceIds = concat(
+  [law.id, containerEnv.id],
+  deployApp ? [containerApp!.id] : [],
+  createDeployIdentity ? [deployIdentity!.id, deployFederation!.id, deployReadsGroup!.id] : [],
+  createDeployIdentity && deployApp ? [deployUpdatesApp!.id] : [],
+  createBudget ? [budget!.id] : [],
+  [resourceId('Microsoft.Portal/dashboards', dashboardResolvedName)]
+)
+var dashboardResourceLinks = [for id in dashboardResourceIds: '- [${last(split(id, '/'))}](https://portal.azure.com/#resource${id})']
+
+resource dashboard 'Microsoft.Portal/dashboards@2022-12-01-preview' = if (!empty(dashboardName)) {
+  name: dashboardResolvedName
+  location: location
+  tags: union(tags, { 'hidden-title': 'Tidepin Demo' })
+  properties: {
+    lenses: [
+      {
+        order: 0
+        parts: [
+          {
+            position: {
+              x: 0
+              y: 0
+              colSpan: 8
+              rowSpan: 6
+            }
+            metadata: {
+              type: 'Extension/HubsExtension/PartType/MarkdownPart'
+              inputs: []
+              settings: {
+                content: {
+                  settings: {
+                    title: 'Project resources'
+                    subtitle: 'Consumption demo infrastructure'
+                    markdownSource: 1
+                    content: join(dashboardResourceLinks, '\n')
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+    metadata: {
+      model: {
+        timeRange: {
+          value: {
+            relative: {
+              duration: 24
+              timeUnit: 1
+            }
+          }
+          type: 'MsPortalFx.Composition.Configuration.ValueTypes.TimeRange'
+        }
       }
     }
   }

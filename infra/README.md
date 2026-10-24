@@ -9,8 +9,9 @@ The demo follows the existing BoltClock container-hosting pattern. `main.bicep` 
 | Container app, optional during bootstrap | One stateless public image; 0.25 vCPU, 0.5 GiB, zero idle replicas, at most one replica |
 | Deploy identity and federated credential, optional | GitHub OIDC; Reader on the resource group and Contributor on this container app only |
 | Monthly budget, optional | Actual and forecast notifications; it does not enforce a spending limit |
+| Shared dashboard, optional during bootstrap | Links to every deployed project resource, its OIDC credential and role assignments |
 
-There is no database, storage account, Function App, or background ingest service. The template does not provision resources or configure GitHub by itself. Deployment automation, the shared resource dashboard, DNS setup and certificate issuance are separate tasks.
+There is no database, storage account, Function App, or background ingest service. The template does not configure GitHub by itself. The deployment workflow publishes images and updates an already provisioned app. DNS setup and certificate issuance follow separately.
 
 ## Check without cloud credentials
 
@@ -43,12 +44,20 @@ These are operator steps for the later deployment task, using an already authori
 3. Publish a public GHCR image. Enable `deployApp` and set `containerImage` to a published immutable commit tag or digest, then preview and deploy again. No registry password is required for a public package.
 4. Configure the GitHub `production` environment's `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP` and `AZURE_CONTAINERAPP_NAME` secrets. Use the deployment identity's client ID, never a long-lived Azure credential.
 5. Verify the active revision and request `https://<app-address>/health`. A successful image pull alone does not prove the app is healthy.
-6. Create the shared dashboard listing the project's resources and record the exact DNS instructions privately. DNS changes and hostname binding follow separately.
+6. Set `dashboardName` to create the shared dashboard listing the project's resources and record the exact DNS instructions privately. DNS changes and hostname binding follow separately.
 
 The deploy identity can read this resource group and modify this container app. It cannot provision the environment, workspace, identities or role assignments, and cannot update other apps. The operator applying Bicep needs the corresponding provisioning and role-assignment permissions.
 
 Set `githubFederationSubject` to the **exact** subject GitHub emits for the `production` environment. Depending on repository settings it can be `repo:<owner>/<repository>:environment:production` or include immutable IDs, such as `repo:<owner>@<owner-id>/<repository>@<repository-id>:environment:production`. Verify the repository's current OIDC configuration; never assume the name-only form. An empty subject skips the identity and its role assignments.
 
 After DNS verification and a free managed certificate have been issued, retain `customDomainName` and `customDomainCertificateId` in private parameters. Both must be set to preserve the HTTPS binding on subsequent Bicep deployments; leaving either empty omits it. The template does not create a certificate or DNS records.
+
+## Deployment workflow
+
+`.github/workflows/deploy.yml` runs on pushes to `main` and can be dispatched manually for `main`. A serial concurrency group prevents overlapping rollouts. It publishes the public repository's image to GHCR with an immutable `sha-<commit>` tag and the convenience `prod` tag. The first image run works without Azure secrets; missing production configuration explicitly skips the rollout.
+
+After the first package publication, set its visibility to public in GitHub's package settings and verify anonymous access before provisioning the app. Set all five production environment secrets only after the app and its scoped OIDC role assignment exist. A subsequent main-branch run signs in with OIDC, updates only that app to the immutable commit tag, wakes a scaled-to-zero app with health requests, requires a healthy revision, and checks the exact `{"status":"ok"}` response. The public workflow masks generated hostnames and revision names before using them in diagnostics, and suppresses Azure resource output. Logs contain state and attempt counts, not environment values.
+
+Deployment updates do not reapply Bicep or change scaling, secrets, DNS or certificates. Infrastructure changes require an operator to preview and apply private parameters separately. The shared dashboard has a resource link for every resource the template creates; it is an Azure resource in the project's group and follows that group's access permissions.
 
 See [ADR 0001](../docs/decisions/0001-hosting.md) and the [system design](../docs/system-design.md).

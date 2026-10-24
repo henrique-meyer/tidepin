@@ -1,0 +1,128 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  AZURE_CORE_OUTPUT: none
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # The first run publishes the image before Azure is configured.
+      - name: Decide what runs
+        id: gate
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          AZURE_CONTAINERAPP_NAME: ${{ secrets.AZURE_CONTAINERAPP_NAME }}
+        run: |
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          if [ -n "$AZURE_CLIENT_ID" ] && [ -n "$AZURE_TENANT_ID" ] && [ -n "$AZURE_SUBSCRIPTION_ID" ] && [ -n "$AZURE_RESOURCE_GROUP" ] && [ -n "$AZURE_CONTAINERAPP_NAME" ]; then
+            echo "azure=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Production Azure configuration is incomplete; publishing the image without a rollout."
+            echo "azure=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.gate.outputs.image }}
+          tags: |
+            type=sha,format=long
+            type=raw,value=prod
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - uses: azure/login@v3
+        if: steps.gate.outputs.azure == 'true'
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Names and identifiers are environment secrets and never printed.
+      - name: Update the container app
+        if: steps.gate.outputs.azure == 'true'
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          AZURE_CONTAINERAPP_NAME: ${{ secrets.AZURE_CONTAINERAPP_NAME }}
+          IMAGE: ${{ steps.gate.outputs.image }}:sha-${{ github.sha }}
+        run: |
+          az config set extension.use_dynamic_install=yes_without_prompt --only-show-errors --output none
+          az containerapp update \
+            --subscription "$AZURE_SUBSCRIPTION_ID" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_CONTAINERAPP_NAME" \
+            --image "$IMAGE" \
+            --output none --only-show-errors
+
+      # A successful image pull is not a healthy running site.
+      - name: Check the revision and health
+        if: steps.gate.outputs.azure == 'true'
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          AZURE_CONTAINERAPP_NAME: ${{ secrets.AZURE_CONTAINERAPP_NAME }}
+        run: |
+          app=(--subscription "$AZURE_SUBSCRIPTION_ID" --resource-group "$AZURE_RESOURCE_GROUP" --name "$AZURE_CONTAINERAPP_NAME")
+          revision=$(az containerapp show "${app[@]}" --query properties.latestRevisionName --output tsv --only-show-errors)
+          fqdn=$(az containerapp show "${app[@]}" --query properties.configuration.ingress.fqdn --output tsv --only-show-errors)
+          test -n "$revision" && test -n "$fqdn"
+          echo "::add-mask::$revision"
+          echo "::add-mask::$fqdn"
+          for attempt in $(seq 1 30); do
+            curl --silent --output /dev/null --connect-timeout 5 --max-time 10 "https://$fqdn/health" || true
+            state=$(az containerapp revision show "${app[@]}" --revision "$revision" \
+              --query "[properties.runningState, properties.healthState]" --output tsv --only-show-errors | tr '\n' ' ')
+            read -r running health <<< "$state"
+            echo "attempt $attempt: running=$running health=$health"
+            if [ "$health" = "Healthy" ]; then break; fi
+            case "$running" in Failed|Degraded) echo "::error::The deployed revision is $running."; exit 1 ;; esac
+            sleep 10
+          done
+          if [ "$health" != "Healthy" ]; then echo "::error::The deployed revision did not become healthy."; exit 1; fi
+          curl --silent --fail --connect-timeout 5 --max-time 20 --retry 5 --retry-delay 5 --retry-all-errors "https://$fqdn/health" | jq -e '. == {"status":"ok"}'
