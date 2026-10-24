@@ -32,7 +32,9 @@ function numericOffset(time: Date, zone: string): number | null {
 export function checkedStationZone(candidates: readonly string[], standardOffset: number | null, observedDst: boolean | null, year: number): string | null {
   if (standardOffset === null) return null;
   const matching = [...new Set(candidates)].filter(zone => {
-    if (!validTimeZone(zone)) return false;
+    // geo-tz uses longitude-based ocean fallbacks outside mapped land boundaries.
+    // A matching numeric offset alone cannot establish the station's local rules.
+    if (zone.startsWith('Etc/GMT') || !validTimeZone(zone)) return false;
     const january = numericOffset(new Date(Date.UTC(year, 0, 15, 12)), zone);
     const july = numericOffset(new Date(Date.UTC(year, 6, 15, 12)), zone);
     if (january === null || july === null || Math.min(january, july) !== standardOffset) return false;

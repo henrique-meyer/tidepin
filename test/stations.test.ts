@@ -65,6 +65,8 @@ describe('NOAA station discovery', () => {
   it('fails closed on invalid, ambiguous or NOAA-inconsistent geographic time zones', () => {
     expect(checkedStationZone(['America/New_York'], -5, true, 2026)).toBe('America/New_York');
     expect(checkedStationZone(['Etc/GMT+5'], -5, true, 2026)).toBeNull();
+    expect(checkedStationZone(['Etc/GMT+5'], -5, null, 2026)).toBeNull();
+    expect(checkedStationZone(['Etc/GMT'], 0, false, 2026)).toBeNull();
     expect(checkedStationZone(['America/Chicago'], -5, null, 2026)).toBeNull();
     expect(checkedStationZone(['America/New_York', 'America/Detroit'], -5, true, 2026)).toBeNull();
     expect(checkedStationZone(['America/New_York'], null, null, 2026)).toBeNull();
