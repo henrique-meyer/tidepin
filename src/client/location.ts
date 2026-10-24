@@ -45,7 +45,7 @@ async function resolveStation(): Promise<void> {
     const result = await response.json() as { station: TideStation };
     if (current !== generation) return;
     station = result.station;
-    stationReadout.textContent = `Nearest tide station: ${station.name}${station.curveSupported ? '' : ' (high/low predictions only)'}${station.timeZoneId ? '' : ' — local time unavailable'}`;
+    stationReadout.textContent = `Nearest tide station: ${station.name}${station.curveSupported ? '' : ' (curve estimated from high/low predictions)'}${station.timeZoneId ? '' : ' — local time unavailable'}`;
   } catch {
     if (current !== generation) return;
     stationReadout.textContent = 'Could not find a tide station. Move the pin or try again when online.';

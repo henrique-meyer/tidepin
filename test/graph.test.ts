@@ -61,6 +61,23 @@ describe('graph presentation', () => {
     const missing = fixture(); missing.predictions.curve.coverage = { ...missing.window, start: missing.window.start + 1 };
     expect(() => parseTideResponse(missing, '0012345')).toThrow();
   });
+  it('validates curve provenance against station capability without rejecting older responses', () => {
+    const harmonic = fixture();
+    harmonic.predictions.curveSource = 'sixMinute';
+    expect(parseTideResponse(harmonic, '0012345')).toBe(harmonic);
+    harmonic.predictions.curveSource = 'estimatedExtremes';
+    expect(() => parseTideResponse(harmonic, '0012345')).toThrow('Invalid curve source.');
+    const subordinate = fixture();
+    subordinate.station.curveSupported = false;
+    subordinate.predictions.curveSource = 'estimatedExtremes';
+    subordinate.predictions.curve = { status: 'unsupported', data: null, fetchedAt: null, coverage: subordinate.window, error: null };
+    expect(parseTideResponse(subordinate, '0012345')).toBe(subordinate);
+    subordinate.predictions.curveSource = 'sixMinute';
+    expect(() => parseTideResponse(subordinate, '0012345')).toThrow('Invalid curve source.');
+    delete subordinate.predictions.curveSource;
+    expect(parseTideResponse(subordinate, '0012345')).toBe(subordinate);
+    expect(() => parseTideResponse({ ...subordinate, predictions: { ...subordinate.predictions, curveSource: 'unknown' } }, '0012345')).toThrow('Invalid curve source.');
+  });
 });
 
 describe('visible display graph lifecycle', () => {
