@@ -20,7 +20,7 @@ The location picker is a separate Vite HTML entry. Both development and producti
 
 The page has a semantic three-line footer: linked NOAA CO-OPS credit, a separate navigation disclaimer and the personal/source credit. External links open in a new tab with `rel="noopener"`. Its isolated `footer.css` uses the source-credit typography/color tokens and allows wrapping on narrow screens; the main placeholder content remains separate from the footer. A flexible main row keeps the footer at the bottom without fixing it over future chart content.
 
-The container has a build stage and a runtime stage based on `node:24-slim`. Its runtime contains production dependencies, compiled output and original brand assets, and runs as the unprivileged `node` user. Local configuration, notes, tests and infrastructure files are excluded from the container context.
+The container has a build stage and a runtime stage based on `node:24-slim`. Its runtime contains production dependencies, compiled output, original brand assets and the project license with its required notice, and runs as the unprivileged `node` user. Generated browser JavaScript bundles also carry the license URL and exact required notice. Local configuration, notes, tests and infrastructure files are excluded from the container context. The project is source-available for noncommercial use; see [the license terms and branding restrictions](../README.md#license). Third-party components retain their separate terms.
 
 ## Appearance
 
