@@ -1,4 +1,6 @@
-# Demo sessions and scale to zero
+# ADR 0003: Demo sessions and scale to zero
+
+Status: Accepted
 
 The demo runs on Container Apps Consumption with zero minimum replicas and at most one replica. A visit wakes the app; after requests stop, the platform can scale it down following its idle cooldown. A tab that polls indefinitely would keep generating work even when its viewer has left.
 

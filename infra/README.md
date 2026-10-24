@@ -31,13 +31,13 @@ Pull-request CI repeats these checks on a hosted runner. It also runs lint, type
 
 Copy the example to `local/infra/main.bicepparam` in the separate private notes repository. Update its `using` statement to point to this public checkout's `infra/main.bicep`, relative to the private parameter file. Real names, domains, subscription and identity IDs, budget recipients and keys belong only in private configuration. Never place the real parameter file in this public repository.
 
-Every resource name is parameterized. Ingress requires HTTPS and points to `targetPort`; startup, readiness and liveness probes use `healthPath`. Leave `googleMapsApiKey` empty until the location picker is configured; otherwise supply a restricted browser key through private parameters. The key becomes a Container Apps secret. `PUBLIC_BASE_URL` defaults to the generated app address. `sessionLimitMinutes` / `SESSION_LIMIT_MINUTES` accepts 1–120 minutes and defaults to 120; the browser session timer returns an expired display to Start and stops ordinary display polling, allowing the platform's idle scale-to-zero policy to act. This cooperative client limit is not a server quota; see [ADR 0003](../docs/decisions/0003-demo-session.md).
+Every resource name is parameterized. Ingress requires HTTPS and points to `targetPort`; startup, readiness and liveness probes use `healthPath`. Leave `googleMapsApiKey` empty until the location picker is configured; otherwise supply a restricted browser key through private parameters. The key becomes a Container Apps secret. The template also supplies `PUBLIC_BASE_URL`, defaulting to the generated app address; the current server does not consume it. `sessionLimitMinutes` / `SESSION_LIMIT_MINUTES` accepts 1–120 minutes and defaults to 120; the browser session timer returns an expired display to Start and stops ordinary display polling, allowing the platform's idle scale-to-zero policy to act. This cooperative client limit is not a server quota; see [ADR 0003](../docs/decisions/0003-demo-session.md).
 
 The template fixes the smallest resource allocation and scaling bounds to protect the demo's intended idle cost. Scale-to-zero can cause cold starts; it does not guarantee a zero bill, and the log ingestion cap is separate from the optional budget.
 
 ## Provisioning sequence
 
-These are operator steps for the later deployment task, using an already authorized subscription and resource group:
+For a new installation, use an already authorized subscription and resource group:
 
 1. Verify the Azure account and permitted resource group. Start with `deployApp = false` to create the workspace, environment and optional deploy identity before an image exists.
 2. Preview changes with `az deployment group what-if`, then deploy only the reviewed resources. Keep outputs in private notes.

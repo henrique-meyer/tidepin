@@ -1,73 +1,103 @@
 # System design
 
-The demo is one stateless Node 24 process with a browser client. This document describes its Start/display shell, tide-data API and station-local graph.
+Tidepin Demo is one stateless Node 24 process serving two browser pages. Fastify owns runtime configuration, station discovery and NOAA prediction retrieval; the browser owns location selection, preferences, the Start/display lifecycle and rendering. The [stack](decisions/0002-stack.md) follows the existing BoltClock conventions.
 
-## Request flow
+## Components and data flow
 
-In production, Fastify listens on `0.0.0.0` at `PORT` (8080 by default). `GET /health` returns `{"status":"ok"}` without depending on an upstream data source. The compiled Vite page and bundles come from `dist/client`; unchanged brand assets come from `assets` under the `/assets/` URL prefix. Unrecognized paths return 404. SIGINT and SIGTERM close the HTTP server gracefully.
+```mermaid
+flowchart LR
+  Picker[Location picker] -->|POST coordinates| Stations[Station client and zone validation]
+  Display[Display client] -->|GET station tides| API[Daily tide route]
+  API --> Stations
+  API --> Predictions[Prediction client and cache]
+  Stations --> Queue[Shared NOAA scheduler]
+  Predictions --> Queue
+  Queue --> Metadata[NOAA Metadata API]
+  Queue --> NOAA[NOAA Data Retrieval API]
+  API -->|UTC seconds and meters| Graph[SVG graph and HTML event table]
+  Settings[Display preferences] --> Graph
+  Session[Session deadline] -->|expiry stops work| Display
+```
 
-In development, Vite serves the client on port 5173 and proxies `/health`, `/api`, and `/assets` to Fastify on port 8080. The server starts without a compiled client, so the health endpoint and original logo remain available while Vite handles the page.
+The browser never calls NOAA directly. Maps/place search is a separate, deployment-supplied Google integration, not a tide source.
 
-The location picker is a separate Vite HTML entry. Both development and production serve it at `/location`; production Fastify sends `location.html` explicitly. `GET /api/config` returns only browser-safe Maps settings and the demo session limit with `Cache-Control: no-store`. A browser-restricted Maps key is supplied at runtime and never embedded in the build. `POST /api/stations/nearest` accepts only numeric coordinates, and `GET /api/stations/:id` restores public station metadata without persisting its name.
+| Component | Responsibility |
+| --- | --- |
+| `src/server/app.ts` | Construct Fastify without opening a socket, validate routes, serve pages/assets |
+| `src/server/config.ts`, `index.ts` | Validate environment input, start on `0.0.0.0:PORT`, close gracefully on SIGINT/SIGTERM |
+| `station-client.ts`, `station-zones.ts` | Resolve the nearest prediction station, cache metadata, validate its geographic IANA zone |
+| `noaa-client.ts`, `noaa-scheduler.ts` | Fetch independent curve/event products, normalize/cache them, pace all NOAA traffic |
+| `src/shared/tides.ts` | Pure chart segmentation, interpolation, local-day/DST windows and unit/time formatting |
+| `src/shared/tide-response.ts` | Typed station/window/product response shared with the browser |
+| `display-controller.ts`, `main.ts`, `start-screen.ts` | Start/display state, saved-station startup and lifecycle integration |
+| `graph-controller.ts`, `graph-model.ts`, `graph.ts` | Request lifecycle, response validation, geometry, cards/SVG/table and accessibility |
+| `location.ts`, `location-settings.ts`, `geolocation.ts` | Map/search/pin selection, browser position and narrowly scoped device storage |
+| `controls.ts`, `display-settings.ts`, `session.ts` | Top bar/settings, shared preferences, bounded session and footer time left |
 
-## Modules and build
+## HTTP contract and build
 
-`src/server/app.ts` creates a Fastify instance without opening a socket, allowing request-level tests with Fastify injection. `config.ts` validates the process port, and `index.ts` supplies production asset paths and starts the process. `src/client` is plain TypeScript plus CSS. Vitest runs the tests in `test`; ESLint and TypeScript check the complete source tree.
+| Route | Behavior |
+| --- | --- |
+| `GET /` | Built display page |
+| `GET /location` | Separate built location-picker page |
+| `GET /health` | Exactly `{"status":"ok"}`, independent of NOAA or Maps availability |
+| `GET /api/config` | Only browser-safe Maps key/map ID and `sessionLimitMinutes`; never `process.env` |
+| `POST /api/stations/nearest` | Numeric `{latitude, longitude}` body, at most 1 KiB; resolves a prediction station |
+| `GET /api/stations/:id` | Public station metadata for a validated seven-character alphanumeric ID |
+| `GET /api/tides/:id` | Station, current local-day UTC window, request instant and independent prediction products |
+| `GET /api/tides/:id?refresh=1` | Explicit refresh respecting all upstream pacing/cooldowns |
+| `/assets/` | Original assets served separately from the built client |
 
-`src/server/noaa-client.ts` provides `createNoaaClient().getPredictions()` for a station ID, validated IANA zone and UTC display window. Separate curve/event requests normalize canonical UTC seconds and meters. Its bounded in-memory cache reuses covered windows, coalesces identical in-flight requests and retains independently valid saved products after errors. Downloads are serialized with one-second pacing; retries respect a sixty-second minimum and longer NOAA retry instructions. The daily tide API exposes these products to the graph.
+The tide route resolves the station zone on the server and computes today's start/end using `stationDayWindow`. It rejects invalid IDs (400), unknown stations (404), unavailable zones (422) and metadata/route transport failures (503). Products can fail independently inside a successful response. Clients cannot choose arbitrary prediction ranges, datums or intervals. API responses have `Cache-Control: no-store`; server caches govern upstream freshness. Unrecognized paths return 404.
 
-`src/shared/tides.ts` holds pure normalization, six-minute-limited interpolation, segmented chart points, separate day markers and next events, station-local calendar windows and unit/time formatting. Chart coordinates use elapsed seconds; canonical meters remain unchanged. A supplied IANA zone governs station dates, including DST, while requests use GMT to avoid ambiguous timestamps. See [data sources](data-sources.md) for the API contract, cache behavior and deterministic fixtures.
+Vite serves the two HTML entries in development on port 5173, proxying `/api`, `/health` and `/assets` to Fastify on 8080. Production compiles into `dist/server` and `dist/client`; Fastify serves the built pages. `buildApp` supports Fastify injection for HTTP tests without opening a socket.
 
-The footer's `footer-source` paragraph combines the linked NOAA CO-OPS credit and “Not for navigation.”, wrapping naturally on narrow screens. The personal/source credit remains a separate `footer-credit` paragraph, and the location page retains its privacy note. These stable classes let additional footer status elements stay independent of paragraph order. External links open in a new tab with `rel="noopener"`. Its isolated `footer.css` uses the source-credit typography/color tokens; a flexible main row keeps the footer at the bottom without fixing it over chart content.
+The two-stage `node:24-slim` image contains only production dependencies, compiled output, original assets and license notices. It runs as the unprivileged `node` user, with no database or persistent volume. Local notes/configuration, tests and infrastructure files stay out of its build context. Browser JavaScript retains the exact project license URL/Required Notice; the runtime retains `LICENSE`, `THIRD-PARTY-NOTICES` and upstream dependency/data notices.
 
-The container has a build stage and a runtime stage based on `node:24-slim`. Its runtime contains production dependencies, compiled output, original brand assets and the project license with its required notice, and runs as the unprivileged `node` user. Generated browser JavaScript bundles also carry the license URL and exact required notice. Local configuration, notes, tests and infrastructure files are excluded from the container context. The project is source-available for noncommercial use; see [the license terms and branding restrictions](../README.md#license). Third-party components retain their separate terms.
+## NOAA transport, caches and station time
 
-## Appearance
+Metadata and predictions use one process-wide `noaa-scheduler.ts` queue. It consumes a response body before releasing the queue and leaves at least one second between request starts. Network/timeouts, HTTP failures, malformed JSON, invalid products and NOAA error envelopes apply a shared minimum sixty-second cooldown; longer `Retry-After` instructions win. Each client retains separate bounded caches and caller-owned snapshots. Manual refresh bypasses freshness, not cooldowns. See [data sources](data-sources.md) for exact request/product and saved-data rules.
 
-The Start screen uses the original logo, Tidepin name, a Start display action and the shared NOAA/disclaimer and personal-credit footer. A saved station is reused without requesting browser location. On a first visit the browser can supply coordinates or the user can open the map picker; denied/unavailable positions leave that picker accessible. Browser coordinates resolve to a NOAA prediction station before Start becomes available, and only coordinates/station ID are saved when starting. Returning from a saved picker selection opens the display once; an ordinary reload presents Start.
+The station client includes reference and subordinate tide-prediction stations and selects the nearest by great-circle distance. Station ID case and leading zeros are preserved. A server-only geographic lookup uses the station's public coordinates and cross-checks NOAA offset/DST metadata. Missing, ambiguous, conflicting or longitude-only fallback zones are unavailable rather than guessed. The bounded geometry cache is distinct from total process memory; [ADR 0004](decisions/0004-station-time-zones.md) records that tradeoff and upstream attribution.
 
-`DisplayController` owns the Start/display lifecycle and protects it against late permission responses. `tidepin:display-start` and `tidepin:preferences-changed` events expose the selected station and preferences to graph consumers. A `tidepin:session-ended` event returns to Start with the explicit session-ended message while retaining the selected station. The station heading and graph mount are kept separate from the splash and toolbar.
+Canonical times are UTC Unix seconds and heights are finite signed meters relative to MLLW. The supplied IANA zone governs station dates and formatting. A DST day therefore has its actual 23/25-hour duration, and the horizontal axis uses elapsed seconds rather than equal-sized wall-clock hours.
 
-`setupDisplaySession()` registers before graph setup. Each Start begins one in-memory elapsed-time deadline using `/api/config`'s `sessionLimitMinutes` (1–120, default 120). The NOAA source line shows the source-style `Session expires: H:mm` countdown only while active. Expiry emits `tidepin:session-ended` once, so graph consumers stop polling, abort requests and ignore late results. A synchronous capture-phase visibility check expires a sleeping tab before graph foreground work resumes. Delayed callbacks, late configuration and backward clock changes do not extend a session. Configuration failure keeps a bounded 120-minute fallback. No timer state is stored and no keepalive request is sent; this is cooperative client behavior, not a server quota. See [ADR 0003](decisions/0003-demo-session.md).
+## Start, graph and session lifecycle
 
-The browser follows the system's light or dark appearance through `prefers-color-scheme`; changes take effect immediately without a reload or a stored theme preference. CSS custom properties use the Tidepin source design tokens for colors, chart colors, typography, spacing, radii and motion. Text uses system fonts with the source iOS type-role sizes in rem, so browser font scaling continues to work. Later components reuse these properties rather than inventing values.
+A saved station is reused without requesting browser geolocation. A first visit offers current location or the map picker; denied/unavailable positions leave the picker accessible. Browser coordinates resolve to a station before Start is enabled. The original Tidepin logo is reused unchanged. `DisplayController` protects Start/display state against late permission responses. Returning from a saved picker selection consumes a transient return flag and opens the display once; an ordinary reload shows Start.
 
-Links use the accessible accent-text color rather than brand amber on the light background. `prefers-contrast: more` promotes secondary/tertiary text to primary and decorative separators to the border color. `prefers-reduced-motion` makes the token durations instantaneous. The page uses flat surfaces; there is no animated backdrop or audio.
+`setupDisplaySession()` registers before `setupTideGraph()`. Starting emits `tidepin:display-start` with the selected station and preferences. The graph requests the daily API, then refreshes every sixty seconds while active and visible. Hiding pauses timers and aborts the current request. Returning to the foreground refreshes only if the display is still active. Generation guards discard late results after a station change, stop or abort. A failed app request retains only previously covered data for the same local day; yesterday is never relabelled as today.
+
+`session.ts` starts one in-memory deadline per display session using the 1–120-minute runtime setting (default 120). The footer shows `Session expires: H:mm` while active. Expiry emits `tidepin:session-ended` once: graph timers/data clear, pending requests abort, and the shell returns to Start with “Your session has ended. Press Start display to continue.” A capture-phase visibility check expires a sleeping tab synchronously before a graph foreground handler can run. Delayed callbacks, late configuration and backward clock changes do not extend the session. Configuration failure keeps a bounded 120-minute fallback. There is no timer persistence or keepalive request. [ADR 0003](decisions/0003-demo-session.md) explains why this cooperative client behavior is not a server quota.
+
+`mountTideGraph` exposes `start`, `setPreferences`, `refresh`, `stop` and `destroy`; `setupTideGraph` binds lifecycle events. Optional `onChartData` and `onStation` callbacks let presentation layers reuse canonical points/current height or station identity without another data request. Unavailable/stopped chart data is reported as null. The graph itself does not require a background renderer.
+
+## Chart, controls and accessibility
+
+The current-height card uses interpolation only across adjacent samples at most six minutes apart. SVG segments stop at gaps; there is no smoothing, extrapolation or inference of authoritative extrema. The now dot needs valid interpolation on today's covered chart. Next high/low cards and chart markers come from NOAA's separate event product. Subordinate stations retain those events while showing that a curve is unavailable. Loading, empty-day, partial/full failure, saved-data and retry-wait states have explicit text.
+
+The SVG has an accessible description, marker titles, station-zone/datum context and a real chronological HTML table. Feet/meters applies to every shown and accessible height: current, next events, axis, labels and table. Display-only conversion/rounding never changes canonical meters. Station-local time includes zone/offset context; the 12/24-hour preference applies consistently.
+
+The source-style top bar contains Settings, Location and user-requested Full screen. Its action buttons hide during full screen and return on exit; unsupported full screen is hidden and rejection is harmless. The Start screen hides the toolbar. Settings uses native modal focus/Escape handling, applies changes immediately and resets only preferences, retaining location.
+
+`display-settings.ts` owns the typed `{heightUnit: 'ft' | 'm', clockFormat: '12h' | '24h'}` record. Defaults are feet and 12-hour time. Returned snapshots are independent, malformed input falls back safely, unknown fields are not written, and cross-tab changes update subscribers. Blocked device storage leaves preferences usable in memory. `tidepin:preferences-changed` redraws the graph without starting a new session or request.
+
+System light/dark appearance follows `prefers-color-scheme` immediately, without a stored theme setting. CSS properties carry the source Tidepin color, typography, spacing, radius and motion tokens. Text uses system fonts and rem sizes. More-contrast promotes secondary text; reduced-motion disables spinner motion. There is no audio or weather service.
+
+The footer's stable `footer-source` paragraph combines the NOAA link and “Not for navigation.” with natural wrapping. Personal/source credit stays in `footer-credit`, and the picker retains its privacy note. External links use `rel="noopener"`. A flexible main row keeps the footer below content rather than overlaying the chart.
 
 ## State and privacy
 
-Location selection stores exactly `{latitude, longitude, stationId}` in the device's `tidepin.location` record. Names are reloaded from NOAA, never persisted. If device storage is blocked, Start display can still use its current selection in memory. Place search uses Google Places API (New), with debouncing and session tokens; address/query text and suggestions stay only in page memory and are cleared after selection or page exit. Search text is sent directly to Google rather than through the app server. User-coordinate requests use a POST body and request logging is disabled. The server's metadata and prediction caches are bounded process memory, with no database or user-location history.
+Location selection stores exactly `{latitude, longitude, stationId}` in `tidepin.location`. Station names stay in memory and are reloaded from NOAA. Display preferences use the separate `tidepin.display` record; the picker return marker is transient session storage. No addresses, place queries or timer state are persisted. Storage failure permits the current Start selection in memory, while picker Save explains why it cannot persist before leaving.
 
-The picker supports map clicks, a draggable pin and browser geolocation. Save marks a transient, one-shot session return flag and navigates to the display; failure to write device storage keeps the user on the picker with an explanation. Back marks the same return flag without saving a changed pin. A generation guard prevents slow station/search responses from replacing a more recent selection. Missing Maps configuration yields a readable map state and keeps current-location selection available; this does not count as live Maps verification. Secrets and environment-specific values belong in private configuration; `.env.example` documents safe settings for local development.
+Place search uses Google Places API (New), debouncing and session tokens. Query text/suggestions stay in page memory and clear after selection or exit; text goes directly to Google, never through the app. A generation guard rejects stale search/station responses. Maps configuration is browser-safe runtime data; actual key restrictions and private deployment settings stay outside the repository. Missing configuration shows a readable fallback and keeps current-location selection available, without claiming live Maps acceptance.
 
-Place search supports keyboard selection: arrow keys wrap through suggestions, with ArrowUp entering an unselected list at its last item and ArrowDown at its first. Enter chooses the highlighted result; Escape clears the transient query and list.
+User coordinates go to station discovery only in a POST body. Automatic request logging is disabled. NOAA metadata/zone lookup uses stations' public coordinates, and server caches hold no user-location history. There is no analytics or server-side place geocoding in this implementation.
 
-## Display controls and preferences
+## Hosting, delivery and verification
 
-`src/client/controls.ts` exports `mountTopBar(root, options)`, returning `setLocationName(name)` and `destroy()`. It mounts the original-logo brand, Settings, Location and an explicitly requested full-screen action. The Settings dialog contains only height units (feet/meters), a 12/24-hour clock and Reset, plus Done to close it. Changes apply immediately. Reset restores feet and the source 12-hour default while preserving the chosen location. Native modal behavior handles keyboard focus and Escape. When full screen is entered through the button or browser display mode, the action buttons hide as in the source display; exiting restores them. Unsupported full screen is hidden, and a rejected request is harmless. The start-screen integration decides when its top-bar root is visible.
+Parameterized Bicep describes Container Apps Consumption, capped Log Analytics, optional budget and scoped GitHub OIDC identity, plus a shared resource dashboard. The fixed app allocation is 0.25 vCPU/0.5 GiB, with zero-to-one replicas and HTTPS ingress. Startup/readiness/liveness probes use process health, not tide freshness. The deploy identity reads the group and modifies only its container app; infrastructure provisioning needs separate permissions. Verified hostname/certificate parameters preserve the binding, while issuance remains a separate operator step.
 
-`src/client/display-settings.ts` owns the shared `tidepin.display` preference key and the typed `DisplaySettings` contract: `{ heightUnit: 'ft' | 'm', clockFormat: '12h' | '24h' }`. Read/get, partial set/update, reset and subscribe functions are shared by controls and display consumers. Storage is optional: blocked site data leaves a working in-memory preference for the current visit. Malformed data falls back to valid defaults; unknown fields are never written. Returned snapshots are independent, and cross-tab storage changes refresh live subscribers. The injectable store allows deterministic tests without a browser.
+PR CI checks the exact head: lint, TypeScript, Vitest, production build, Bicep/example compilation, Docker build and live health/non-root UID. Tests inject clocks/network responses and cover canonical data, DST, HTTP errors, scheduler backoff, lifecycle cancellation and preferences without cloud credentials. UI acceptance uses the real running page separately; fixture tests alone do not prove a live Google map or deployment.
 
-**Height integration contract:** every shown tide height uses the same current `heightUnit`, including the current height, next high, next low, chart axis and accessible descriptions. Consumers use the existing pure `formatHeight(canonicalMeters, settings.heightUnit)` / `heightInUnit` helpers, retain canonical meters unchanged and redraw on preference changes. The clock preference supplies `settings.clockFormat === '12h'` to `formatStationTime`, preserving the station's IANA time zone. There is no separate distance-unit preference or duplicated unit state in the location picker. The graph applies these bindings to current/event cards, axis labels, accessible chart descriptions and the daily table.
-
-## Infrastructure and verification
-
-`infra/main.bicep` describes a Consumption Container Apps environment, capped Log Analytics workspace, and optional app, GitHub OIDC deploy identity and monthly budget. Resource names and environment values are parameters. The app allocation is fixed at 0.25 vCPU and 0.5 GiB, scales from zero to at most one replica, and requires HTTPS ingress. Startup, readiness and liveness probes all request the process-health endpoint. The deploy identity reads the resource group and can modify only this app; applying infrastructure requires separate provisioning permissions. Verified hostname and certificate parameters retain the custom-domain binding; the dashboard includes the referenced managed certificate alongside the resources it creates. Certificate issuance is a separate provider operation after owner-managed DNS validation. The private runbook records live endpoints and verification evidence; the public template contains none of those values.
-
-`.github/workflows/pr.yml` checks each PR's exact head: lint, TypeScript, tests and production build, Bicep and example-parameter compilation, then Docker build and a live health/non-root check. These checks require no cloud credentials. The safe parameter example is not deployable until an operator supplies private values.
-
-`.github/workflows/deploy.yml` publishes a GHCR image on `main` and uses the production environment's OIDC identity to update the existing app to its immutable commit tag. The first run publishes without a rollout until all required environment secrets exist. The workflow checks both revision health and the process-health response, including waking scale-to-zero revisions, and serializes rollouts. Resource and generated endpoint details are masked in public logs. Infrastructure provisioning stays separate from app updates. The Bicep template also creates a shared resource dashboard when configured; see the [infrastructure guide](../infra/README.md).
-
-See [ADR 0001](decisions/0001-hosting.md) for hosting and [ADR 0002](decisions/0002-stack.md) for the stack. NOAA CO-OPS is the sole tide-data source; predictions are not for navigation.
-
-## Daily tide graph
-
-`GET /api/tides/:id` resolves NOAA station metadata and computes today's start/end from its validated IANA zone on the server. The response includes the station, UTC window, request instant and independent curve/event products. Invalid station IDs return 400, unknown stations 404, unavailable station zones 422 and metadata transport failures 503. Responses use `Cache-Control: no-store`; the bounded server prediction cache governs freshness. `?refresh=1` requests a manual refresh without bypassing upstream cooldowns. Clients cannot supply arbitrary prediction ranges or datums.
-
-Metadata and predictions use one process-wide `noaa-scheduler.ts` transport. It consumes each response body before releasing the queue, leaves at least one second between starts, and applies a shared minimum sixty-second cooldown after network/timeout, HTTP, malformed JSON or NOAA error-envelope failures. Longer `Retry-After` instructions apply to all queued NOAA callers. Product-validation failures also defer the shared queue. The clients retain their separate bounded caches, typed failures and caller-owned result snapshots.
-
-`graph-controller.ts` starts only on `tidepin:display-start`, redraws on preference events, and requests the app API every sixty seconds while active and visible. Hiding pauses polling and aborts its current HTTP request. Session end clears timers/data, aborts and invalidates late results; waking checks active display state before requesting anything. Session setup must register before graph setup so an expired hidden session ends synchronously before a foreground refresh. A failed app request may retain covered data in memory with a saved-data banner; station-local date rollover never relabels yesterday as today.
-
-`graph.ts` mounts current/next-event cards, the SVG curve and a real chronological table in the existing display. Straight segments stop at missing six-minute samples; no smoothing or authoritative extrema are inferred. The actual now dot requires valid interpolation. Subordinate stations show a curve-unavailable card while preserving high/low cards and the table. Loading, full failure, partial failure, saved data, empty days and throttled retry waits have explicit text. The chart uses elapsed UTC positions with station-local tick labels, so DST days stay 23/25 hours. All visible and accessible heights share feet/meters preferences, and the datum remains MLLW.
-
-`mountTideGraph` provides `start`, `setPreferences`, `refresh`, `stop` and `destroy`; `setupTideGraph` binds the existing window lifecycle events. An optional `onChartData` callback receives canonical chart points/current height or null when unavailable/stopped, allowing a later presentation layer to share data without its own fetch or timer. This graph does not depend on that layer.
+Every push to `main` publishes an immutable GHCR commit tag and, when production configuration exists, uses OIDC to roll out the existing app. Rollouts serialize, wake scale-to-zero revisions, require revision health and the exact process-health JSON, and mask environment values in public logs. Bicep applies remain separate and must preserve the latest image and hostname binding. The [infrastructure guide](../infra/README.md) covers the operator procedure; real environment values and deployment evidence belong outside this public repository.

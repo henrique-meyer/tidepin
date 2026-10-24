@@ -14,4 +14,4 @@ Infrastructure is described in parameterized Bicep. All environment-specific nam
 
 ## Consequences
 
-An idle demo may need a cold start. Data caches are disposable and cannot rely on local disk surviving a revision. Production provisioning, infrastructure templates, and deployment automation are separate implementation tasks. Session limits will be specified in a later decision.
+An idle demo may need a cold start. Data caches are disposable and cannot rely on local disk surviving a revision. Provisioning and certificate issuance are operator steps separate from ordinary image rollouts; private parameters must preserve the current image and verified binding when reapplied. [ADR 0003](0003-demo-session.md) defines the bounded client session that stops ordinary display polling. Scale-to-zero reduces idle work but does not guarantee zero cost. The [infrastructure guide](../../infra/README.md) records the repeatable procedure using placeholders.

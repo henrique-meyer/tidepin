@@ -1,18 +1,30 @@
 # Tidepin
 
-A web demo for viewing NOAA CO-OPS tide predictions. The Start display flow, location picker, shared display controls and station-local daily tide graph are implemented.
+A browser display for today's tide predictions at a chosen NOAA CO-OPS station. It shows the predicted height now, the next high and low, a daily curve and a chronological event table. The interface follows the [BoltClock demo](https://github.com/henrique-meyer/boltclock), using Tidepin's original logo and system light/dark design tokens.
 
-[Tide predictions: NOAA CO-OPS (tidesandcurrents.noaa.gov)](https://tidesandcurrents.noaa.gov). **Not for navigation.**
+[Tide predictions: NOAA CO-OPS (tidesandcurrents.noaa.gov)](https://tidesandcurrents.noaa.gov). **Not for navigation.** Heights are predictions relative to Mean Lower Low Water (MLLW), not observed water levels.
 
 Designed & built by Henrique Meyer · [Source on GitHub](https://github.com/henrique-meyer/tidepin)
 
-## Start the display
+## Screenshots
 
-Open the main page and press **Start display** to use a saved station. A first visit offers browser location or **Set location** for the map picker. The selected coordinates resolve to the nearest NOAA prediction station; the saved selection is reused without another browser-location request. Returning from the picker opens the display directly once.
+![Dark desktop display with the station's daily tide curve, current predicted height, next high and low, event table and NOAA credit.](docs/screenshots/display-dark.png)
 
-The display shows the chosen station, current predicted height, next high and low, a daily curve and a chronological high/low table. All heights switch together between feet and meters, and times use the station's time zone with the selected 12/24-hour clock. The graph refreshes once a minute while the display is visible; hidden or ended sessions stop requesting data.
+![Light narrow display showing the same tide information in a single-column layout.](docs/screenshots/display-light-mobile.png)
 
-The footer shows **Session expires: H:mm** during a display session. `SESSION_LIMIT_MINUTES` accepts 1–120 minutes and defaults to 120. Expiry returns to Start with **Your session has ended. Press Start display to continue.** Press Start again for a fresh session with the same station. The NOAA credit, navigation disclaimer and source credit remain visible on both screens. The client timer stops ordinary graph work through the session-ended event; it is a cooperative demo limit rather than a server quota. See [ADR 0003](docs/decisions/0003-demo-session.md).
+Captured locally from public NOAA predictions on 2026-10-24. These images illustrate the interface; their values are not current readings. The narrow image shows the complete scrollable page.
+
+## Use the display
+
+Open the main page and press **Start display** to use a saved station. On a first visit, allow browser location or choose **Set location** to open `/location`. The chosen point resolves to the nearest NOAA prediction station. The picker supports place search, a map click, a draggable pin and **Use current location**. Save returns directly to the display once; an ordinary reload presents Start again.
+
+The station name and identifier identify which predictions are shown. Dates and times use that station's validated IANA time zone, including daylight saving; they do not switch to the device's zone. The graph's **now** line and dot appear only where valid samples cover the current instant. Missing six-minute samples leave gaps. High/low markers, cards and the table use NOAA's separate event product. A station offering only high/low predictions shows those events without inventing a curve. An unavailable station zone prevents display rather than guessing local time.
+
+The top bar offers **Settings**, **Location** and **Full screen** when supported. Settings changes feet/meters and the 12/24-hour clock immediately across cards, axes, table and accessible descriptions. **Reset** restores feet and the 12-hour clock while keeping the location. Full screen is requested only through its button; exiting restores the action buttons.
+
+The visible display refreshes once a minute and when returning to the foreground. Loading, unavailable products, saved predictions and retry waits are shown explicitly. **Refresh predictions** bypasses cache freshness without bypassing NOAA request cooldowns. Background tabs pause requests. The footer counts down **Session expires: H:mm**; expiry stops graph work and returns to Start with **Your session has ended. Press Start display to continue.** Start begins a fresh session with the same station. This is a cooperative demo limit, not a server quota.
+
+The footer combines the linked NOAA credit and **Not for navigation.** in one naturally wrapping paragraph, with the personal/source credit separate. It remains on Start, display and location pages.
 
 ## Run locally
 
@@ -24,17 +36,22 @@ cp .env.example .env
 npm run dev
 ```
 
-Open `http://localhost:5173`. The Fastify server listens on port 8080 and serves `GET /health` as `{"status":"ok"}`. `PORT` may be changed in `.env`; when changing it for development, update the matching Vite proxy target too.
+In PowerShell, use `Copy-Item .env.example .env` for the copy step. Open `http://localhost:5173`. Vite proxies `/api`, `/assets` and `/health` to Fastify on port 8080. If changing `PORT` for development, update the matching Vite proxy target too.
 
-## Choose a location
+NOAA requires no API key. An optional, deployment-supplied Google Maps key enables the map and place search. Without it, the picker explains the unavailable map and retains browser current-location selection.
 
-Open `/location` to choose a map pin, search for a place or use the browser's current location. The point resolves to the nearest NOAA prediction station. Save returns to the display. Only coordinates and the station identifier are saved on the device; addresses, search text and station names are not persisted.
+### Runtime configuration
 
-Maps requires a browser-restricted Google Maps key supplied as `GOOGLE_MAPS_API_KEY` at runtime. Enable Maps JavaScript API and Places API (New), restrict it to your actual HTTPS site referrers, and authorize any local test referrer explicitly. `GOOGLE_MAPS_MAP_ID` is optional; the public Google demo map is the default for the draggable advanced marker. Keep actual keys in private configuration and out of tracked files. Without a key the page explains the unavailable map, and browser current-location selection can still resolve a NOAA station. This fallback does not verify a live Google map.
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `PORT` | `8080` | Process port, an integer from 1 to 65535 |
+| `GOOGLE_MAPS_API_KEY` | Empty | Browser-restricted key for Maps JavaScript API and Places API (New) |
+| `GOOGLE_MAPS_MAP_ID` | `DEMO_MAP_ID` | Optional public map ID for the draggable advanced marker |
+| `SESSION_LIMIT_MINUTES` | `120` | Whole-minute display session limit, from 1 through 120 |
 
-Station-local time uses a server-only geographic lookup checked against NOAA metadata. See [data sources](docs/data-sources.md), [ADR 0004](docs/decisions/0004-station-time-zones.md) and [third-party notices](docs/third-party-notices.md).
+The development server script loads `.env`; `npm start` reads the process environment. Keep actual configuration outside tracked files. The Maps key is supplied at runtime rather than embedded in a built bundle, and is visible to visitors by design. Restrict it to the two required APIs and your actual HTTPS website referrers, such as `https://your-domain.example/*`. Authorize a separate local test referrer/key explicitly. Google Maps setup and its billing are separate from free NOAA prediction access.
 
-## Check and build
+## Check, build and run a container
 
 ```sh
 npm run lint
@@ -44,27 +61,42 @@ npm run build
 npm start
 ```
 
-After building, open `http://localhost:8080`. `npm start` reads `PORT` from the process environment; the `.env` file is loaded by the development script only.
-
-## Container
+After building, open `http://localhost:8080`. `GET /health` returns exactly `{"status":"ok"}` independently of NOAA availability. Unit tests use frozen synthetic NOAA-shaped fixtures and injected clocks/network responses; they do not need live NOAA or a Maps key.
 
 ```sh
 docker build -t tidepin .
-docker run --rm -p 8080:8080 tidepin
+docker run --rm -p 8080:8080 -e SESSION_LIMIT_MINUTES=120 tidepin
 ```
 
-The two-stage Node 24 image runs as the non-root `node` user and exposes port 8080. Pass an explicit `PORT` using `-e PORT=8080` if the hosting platform requires it. The process is stateless.
+The two-stage `node:24-slim` image runs as the non-root `node` user. It contains production dependencies, built pages, original assets and the project/upstream license notices. The app is stateless: bounded caches are disposable process memory, with no database or persistent volume.
 
-## Project layout
+## How it is built
 
-`src/server` holds Fastify and the NOAA predictions client, `src/client` holds the Vite page, `src/shared/tides.ts` holds pure chart, interpolation and station-local time computations, `test` holds Vitest tests and frozen fixtures, and `assets` holds original brand files. The server computes the current station-local day and serves canonical predictions through `/api/tides/:id`; the browser never requests NOAA directly. The layout follows the [BoltClock demo](https://github.com/henrique-meyer/boltclock).
+TypeScript runs on Node 24 with Fastify; Vite builds two plain TypeScript browser pages, with no UI framework. The server resolves stations and local-day windows, retrieves NOAA products through one paced transport, and serves a validated response to the graph. Shared pure functions keep canonical UTC seconds and meters separate from presentation. The SVG curve and HTML event table share the same source data and preferences.
 
-See the [system design](docs/system-design.md), [implementation plan](docs/plan.md), [infrastructure guide](infra/README.md), and the decisions for [hosting](docs/decisions/0001-hosting.md) and [the stack](docs/decisions/0002-stack.md). Pull-request CI verifies the app, Bicep templates and a running non-root container. Parameterized infrastructure includes a shared resource dashboard; main-branch deployment publishes a container and updates the app through OIDC. Real environment values, private notes, and secrets must stay outside this public repository.
+| Path | Responsibility |
+| --- | --- |
+| `src/server` | Fastify routes, runtime config, station/zone resolution, NOAA clients and shared scheduler |
+| `src/client` | Start/display lifecycle, graph, location picker, controls, preferences and session timer |
+| `src/shared` | Canonical tide/station types, chart computations, interpolation and station-local dates |
+| `test` | Vitest tests and frozen fixtures |
+| `assets` | Original brand assets |
+| `docs` | System design, data behavior, task history, decisions and screenshots |
+| `infra` | Parameterized Bicep and deployment guide |
+| `.github/workflows` | Exact-head PR checks and main-branch container deployment |
 
-The page footer combines the NOAA source link and “Not for navigation.” in one paragraph: “Tide predictions: NOAA CO-OPS (tidesandcurrents.noaa.gov). Not for navigation.” The personal/source credit stays separate. Its external links open in a new tab with `rel="noopener"`. The paragraph wraps naturally on narrow screens and uses the Tidepin footnote and color tokens on the Start, display and location pages.
+Only coordinates and station ID are saved for location selection. The separate display-preference record stores only height unit and clock format. The demo never persists or logs addresses, search text or station names. Search text goes directly to Google Places; user-coordinate station lookup uses a POST body. See [system design](docs/system-design.md) for privacy and lifecycle details, and [data sources](docs/data-sources.md) for NOAA endpoints, station zones, cache/backoff and prediction limitations.
+
+## Deploy a new installation
+
+The reference host is Azure Container Apps Consumption: 0.25 vCPU, 0.5 GiB, zero minimum replicas and at most one replica. Cold starts are expected. Scale-to-zero and session limits reduce idle work; neither promises a zero bill.
+
+Follow the [infrastructure guide](infra/README.md) to prepare private parameters, preview/provision resources and configure the GitHub `production` environment. PR checks validate the app, Bicep and a live non-root container without cloud credentials. Each push to `main` publishes a public GHCR image and, once configured, deploys its immutable commit tag using a scoped OIDC identity. DNS and free managed-certificate issuance are separate operator steps. Keep resource names, IDs, domains and keys in private configuration; examples use placeholders only.
+
+Decisions: [hosting](docs/decisions/0001-hosting.md), [stack](docs/decisions/0002-stack.md), [demo sessions](docs/decisions/0003-demo-session.md), [station time zones](docs/decisions/0004-station-time-zones.md). The [implementation plan](docs/plan.md) records shipped work and outstanding follow-ups.
 
 ## License
 
-Tidepin Demo is source-available for noncommercial use under [PolyForm-Noncommercial-1.0.0](LICENSE). This is not an OSI-approved license. Commercial use requires permission from the author.
+Tidepin Demo is source-available for noncommercial use under [PolyForm-Noncommercial-1.0.0](LICENSE). This is not an OSI-approved license. Commercial use requires permission from the author. Browser bundles carry the license URL and exact Required Notice; the runtime image includes the license.
 
-The Tidepin name, logos and artwork are not licensed for reuse. Third-party dependencies and data retain their own licenses and notices; the project license does not replace those terms.
+The Tidepin name, logos and artwork are not licensed for reuse. Third-party dependencies and geographic boundary data retain their own terms, including the upstream MIT/ODbL notices described in [third-party notices](docs/third-party-notices.md) and [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES). NOAA CO-OPS remains the sole source of tide predictions.
