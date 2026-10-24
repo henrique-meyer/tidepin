@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "provenance": "Synthetic frozen NOAA-shaped inputs; no live network or device clock.",
+  "curve": {
+    "predictions": [
+      { "t": "2026-01-01 00:12", "v": "1.2" },
+      { "t": "2026-01-01 00:00", "v": "-1.2" },
+      { "t": "2026-01-01 00:06", "v": "0" },
+      { "t": "2026-01-01 00:06", "v": "0.0" },
+      { "t": "2026-01-01 00:24", "v": "0.5" }
+    ]
+  },
+  "events": {
+    "predictions": [
+      { "t": "2026-01-02 00:00", "v": "1.5", "type": "H" },
+      { "t": "2026-01-01 00:06", "v": "-1.2", "type": "L" },
+      { "t": "2026-01-01 00:06", "v": "1.2", "type": "H" }
+    ]
+  },
+  "expected": {
+    "times": [1767225600, 1767225960, 1767226320, 1767227040],
+    "heights": [-1.2, 0, 1.2, 0.5],
+    "interpolatedAt180": -0.6,
+    "segmentLengths": [3, 1]
+  }
+}
