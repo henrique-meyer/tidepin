@@ -14,4 +14,4 @@ Use Node 24, strict TypeScript with ES modules, Fastify 5, a plain TypeScript cl
 
 ## Consequences
 
-Browser code has no UI framework. Shared data transformations can be tested without a browser or server. Runtime configuration uses environment variables, documented with safe example values in `.env.example`. The scaffold has no persistent storage or upstream integration.
+Browser code has no UI framework. Shared data transformations can be tested without a browser or server. Runtime configuration uses environment variables, documented with safe example values in `.env.example`. Fastify owns NOAA metadata/prediction access and bounded process caches; the plain TypeScript client owns Start, location selection, settings, session timing and the SVG/HTML tide display. There is no server database or persistent volume. Device storage is limited to coordinates/station identity and the separate display preferences, as described in the [system design](../system-design.md).
