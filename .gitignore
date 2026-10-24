@@ -1,0 +1,22 @@
+# Private notes and local configuration never belong in this public repository.
+/AGENTS.md
+/CLAUDE.md
+/requirements.md
+/infrastructure.md
+/PLAN*.md
+/SEO.md
+.env
+.env.*
+!.env.example
+*.local.*
+infra/**/*.bicepparam
+
+node_modules/
+dist/
+coverage/
+.vite/
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

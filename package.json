@@ -1,0 +1,37 @@
+{
+  "name": "tidepin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A full-screen NOAA CO-OPS tide prediction demo.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/server/index.js",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "dev": "concurrently --names server,client --prefix-colors cyan,yellow \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "tsx watch --env-file-if-exists=.env src/server/index.ts",
+    "dev:client": "vite",
+    "build": "tsc -p tsconfig.server.json && vite build",
+    "start": "node dist/server/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/static": "^10.1.6",
+    "fastify": "^5.12.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "concurrently": "^10.0.6",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}
