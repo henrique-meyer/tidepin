@@ -18,6 +18,12 @@ In development, Vite serves the client on port 5173 and proxies `/health`, `/api
 
 The container has a build stage and a runtime stage based on `node:24-slim`. Its runtime contains production dependencies, compiled output and original brand assets, and runs as the unprivileged `node` user. Local configuration, notes, tests and infrastructure files are excluded from the container context.
 
+## Appearance
+
+The browser follows the system's light or dark appearance through `prefers-color-scheme`; changes take effect immediately without a reload or a stored theme preference. CSS custom properties use the Tidepin source design tokens for colors, chart colors, typography, spacing, radii and motion. Text uses system fonts with the source iOS type-role sizes in rem, so browser font scaling continues to work. Later components reuse these properties rather than inventing values.
+
+Links use the accessible accent-text color rather than brand amber on the light background. `prefers-contrast: more` promotes secondary/tertiary text to primary and decorative separators to the border color. `prefers-reduced-motion` makes the token durations instantaneous. The page uses flat surfaces; there is no animated backdrop or audio.
+
 ## State and privacy
 
 The initial page has no persistence, user input, analytics or location storage. Its prediction client makes upstream requests only when called, and stores predictions only in bounded process memory. Request logging is disabled so future location search URLs do not enter logs. Later location features may retain only coordinates and station identifiers, never addresses or search text. Secrets and environment-specific values belong in private configuration; `.env.example` documents safe settings for local development.
