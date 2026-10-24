@@ -7,6 +7,7 @@ const app = await buildApp({
   clientDir: resolve('dist/client'),
   assetsDir: resolve('assets'),
   logger: true,
+  config,
 });
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {

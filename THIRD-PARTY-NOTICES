@@ -1,0 +1,19 @@
+Geographic station time zones
+
+geo-tz 8.1.10, Copyright (c) 2016 Evan Siroky, is distributed under the MIT
+License. Its original license remains at node_modules/geo-tz/LICENSE.md.
+Source: https://github.com/evansiroky/node-geo-tz
+
+Geographic boundary data is derived from timezone-boundary-builder and
+OpenStreetMap contributors. It is distributed under the Open Data Commons
+Open Database License 1.0 (ODbL).
+License: https://opendatacommons.org/licenses/odbl/1-0/
+Data license: https://github.com/evansiroky/timezone-boundary-builder/blob/master/DATA_LICENSE
+Data/source releases: https://github.com/evansiroky/timezone-boundary-builder/releases
+OpenStreetMap attribution: https://www.openstreetmap.org/copyright
+
+The package and its boundary data are unmodified. Preserve this notice and
+upstream package notices with redistributed runtime images.
+
+NOAA CO-OPS remains the sole source of tide predictions.
+Predictions only. Not for navigation.

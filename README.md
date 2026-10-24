@@ -20,6 +20,14 @@ npm run dev
 
 Open `http://localhost:5173`. The Fastify server listens on port 8080 and serves `GET /health` as `{"status":"ok"}`. `PORT` may be changed in `.env`; when changing it for development, update the matching Vite proxy target too.
 
+## Choose a location
+
+Open `/location` to choose a map pin, search for a place or use the browser's current location. The point resolves to the nearest NOAA prediction station. Save returns to the display. Only coordinates and the station identifier are saved on the device; addresses, search text and station names are not persisted.
+
+Maps requires a browser-restricted Google Maps key supplied as `GOOGLE_MAPS_API_KEY` at runtime. Enable Maps JavaScript API and Places API (New), restrict it to your actual HTTPS site referrers, and authorize any local test referrer explicitly. `GOOGLE_MAPS_MAP_ID` is optional; the public Google demo map is the default for the draggable advanced marker. Keep actual keys in private configuration and out of tracked files. Without a key the page explains the unavailable map, and browser current-location selection can still resolve a NOAA station. This fallback does not verify a live Google map.
+
+Station-local time uses a server-only geographic lookup checked against NOAA metadata. See [data sources](docs/data-sources.md), [ADR 0004](docs/decisions/0004-station-time-zones.md) and [third-party notices](docs/third-party-notices.md).
+
 ## Check and build
 
 ```sh
