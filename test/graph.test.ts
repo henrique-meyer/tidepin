@@ -118,4 +118,17 @@ describe('visible display graph lifecycle', () => {
     expect(states.at(-1)?.error).toContain('time zone is unavailable');
     graph.destroy();
   });
+  it('cannot let an old-station response replace a newer selection', async () => {
+    const { graph, fetcher, states } = harness();
+    let finish!: (response: Response) => void;
+    fetcher.mockImplementationOnce(() => new Promise<Response>(resolve => { finish = resolve; }));
+    graph.start({ stationId: '0012345' }, preferences);
+    const next = fixture(); next.station.id = '0012346'; next.predictions.stationId = '0012346';
+    fetcher.mockResolvedValue(new Response(JSON.stringify(next)));
+    graph.start({ stationId: '0012346' }, preferences); await flush();
+    expect(states.at(-1)?.data?.station.id).toBe('0012346');
+    finish(new Response(JSON.stringify(fixture()))); await flush();
+    expect(states.at(-1)?.data?.station.id).toBe('0012346');
+    graph.destroy();
+  });
 });

@@ -5,7 +5,7 @@ import { createGraphController, type GraphState } from './graph-controller.js';
 import { chartGeometry, displayHeight, eventLabelPositions, localClock, stationTicks } from './graph-model.js';
 
 export type ChartData = Pick<ReturnType<typeof buildChartData>, 'chartPoints' | 'current'>;
-export interface GraphOptions { onChartData?: (data: ChartData | null) => void; onStation?: (name: string) => void }
+export interface GraphOptions { onChartData?: (data: ChartData | null) => void; onStation?: (name: string, stationId: string) => void }
 const escape = (value: string) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 
 export function mountTideGraph(root: HTMLElement, options: GraphOptions = {}) {
@@ -18,7 +18,7 @@ export function mountTideGraph(root: HTMLElement, options: GraphOptions = {}) {
       options.onChartData?.(null);
       root.innerHTML = loading
         ? '<div class="graph-state" role="status"><span class="graph-spinner" aria-hidden="true"></span><p>Loading NOAA predictions…</p></div>'
-        : error ? `<div class="graph-state" role="status"><p>${escape(error)}</p><button type="button" class="graph-retry">Retry predictions</button></div>` : '';
+        : error ? `<div class="graph-state" role="status"><p><span aria-hidden="true">⚠ </span>${escape(error)}</p><button type="button" class="graph-retry">Retry predictions</button></div>` : '';
       root.querySelector('button')?.addEventListener('click', () => { void controller.refresh(true); });
       return;
     }
@@ -31,13 +31,13 @@ export function mountTideGraph(root: HTMLElement, options: GraphOptions = {}) {
     const waitText = wait ? ` Please wait ${wait} seconds before retrying.` : '';
     if (products.curve.data === null && products.events.data === null) {
       options.onChartData?.(null);
-      root.innerHTML = `<div class="graph-state" role="status"><p>NOAA predictions are unavailable. No saved predictions cover this day.${escape(waitText)}</p><button class="graph-retry" type="button" ${loading || wait ? 'disabled' : ''}>Retry predictions</button></div>`;
+      root.innerHTML = `<div class="graph-state" role="status"><p><span aria-hidden="true">⚠ </span>NOAA predictions are unavailable. No saved predictions cover this day.${escape(waitText)}</p><button class="graph-retry" type="button" ${loading || wait ? 'disabled' : ''}>Retry predictions</button></div>`;
       root.querySelector('button')?.addEventListener('click', () => { void controller.refresh(true); });
       return;
     }
     const chart = buildChartData(products.curve.data ?? [], products.events.data ?? [], data.window, now, isToday);
     options.onChartData?.(chart.chartPoints.length || chart.current ? { chartPoints: chart.chartPoints.map(row => ({ ...row })), current: chart.current ? { ...chart.current } : null } : null);
-    options.onStation?.(data.station.name);
+    options.onStation?.(data.station.name, data.station.id);
     const unit = preferences.heightUnit;
     const hour12 = preferences.clockFormat === '12h';
     const time = (instant: number, date = false) => formatStationTime(instant, zone, hour12, date) ?? 'Time unavailable';
@@ -81,7 +81,7 @@ export function mountTideGraph(root: HTMLElement, options: GraphOptions = {}) {
     }
     const rows = chart.markers.map(event => `<tr><th scope="row">${event.type === 'H' ? '↑ High' : '↓ Low'}</th><td>${escape(time(event.time))}</td><td class="graph-table-height">${escape(height(event.heightMeters))}</td></tr>`).join('');
     root.innerHTML = `<p class="graph-meta">${escape(date)} · Station ${escape(data.station.id)}<br>${escape(updated)}</p>
-      <div class="graph-status" role="status">${notices.length ? `<p>${escape(notices.join(' '))}</p>` : loading ? '<p>Updating predictions…</p>' : ''}</div>
+      <div class="graph-status" role="status">${notices.length ? `<p><span aria-hidden="true">⚠ </span>${escape(notices.join(' '))}</p>` : loading ? '<p>Updating predictions…</p>' : ''}</div>
       <article class="graph-card graph-current"><div><h3>Predicted height now</h3><p class="graph-current-value">${chart.current ? escape(height(chart.current.heightMeters)) : '—'}</p></div><div class="graph-current-context"><p>${escape(time(now))}</p><p class="graph-footnote">${escape(zone)} · MLLW</p>${!chart.current ? '<p class="graph-footnote">Current height unavailable</p>' : ''}</div></article>
       <div class="graph-events">${eventCard(chart.nextHigh, 'High')}${eventCard(chart.nextLow, 'Low')}</div>
       ${chartMarkup}<section class="graph-table-section"><h3>High &amp; low tides</h3><div class="graph-table-scroll"><table><caption class="graph-sr-only">${escape(date)}, ${escape(zone)}, predicted heights relative to MLLW</caption><thead><tr><th scope="col">Event</th><th scope="col">Station time</th><th scope="col">Height (${unit})</th></tr></thead><tbody>${rows || `<tr><td colspan="3">${products.events.data === null ? 'High/low predictions are unavailable.' : 'No high or low tides in this day.'}</td></tr>`}</tbody></table></div></section>
