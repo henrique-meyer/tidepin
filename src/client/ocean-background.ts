@@ -9,15 +9,30 @@ export interface OceanBackground {
   destroy(): void;
 }
 
-/** Decorative only: it neither requests data nor starts a clock or animation loop. */
+/** Decorative only: no data request, clock or per-frame JavaScript. */
 export function mountOceanBackground(root: HTMLElement): OceanBackground {
-  const element = root.ownerDocument.createElement('div');
+  const doc = root.ownerDocument;
+  const element = doc.createElement('div');
   element.className = 'ocean-background';
   element.setAttribute('aria-hidden', 'true');
   element.dataset.state = 'neutral';
-  const water = root.ownerDocument.createElement('div');
+  const water = doc.createElement('div');
   water.className = 'ocean-water';
+  const waves = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  waves.classList.add('ocean-waves');
+  waves.setAttribute('viewBox', '0 0 2400 6');
+  waves.setAttribute('preserveAspectRatio', 'none');
+  waves.setAttribute('focusable', 'false');
+  const surface = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+  // Two identical 1200-unit sections: translating half the SVG repeats without a seam.
+  surface.setAttribute('d', 'M0 3 C100 1 200 1 300 3 S500 5 600 3 S800 1 900 3 S1100 5 1200 3 S1400 1 1500 3 S1700 5 1800 3 S2000 1 2100 3 S2300 5 2400 3');
+  surface.setAttribute('vector-effect', 'non-scaling-stroke');
+  waves.append(surface);
+  water.append(waves);
   element.append(water);
+  const visibilityChanged = () => { element.dataset.motion = doc.hidden ? 'paused' : 'running'; };
+  visibilityChanged();
+  doc.addEventListener('visibilitychange', visibilityChanged);
   const hadHostClass = root.classList.contains('ocean-background-host');
   root.classList.add('ocean-background-host');
   root.prepend(element);
@@ -35,6 +50,7 @@ export function mountOceanBackground(root: HTMLElement): OceanBackground {
     },
     destroy() {
       destroyed = true;
+      doc.removeEventListener('visibilitychange', visibilityChanged);
       element.remove();
       if (!hadHostClass) root.classList.remove('ocean-background-host');
     },
