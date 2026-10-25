@@ -30,7 +30,7 @@ Current follow-up **TIDEDEMO-26** links the existing personal footer credit safe
 | TIDEDEMO-21 | Combine the NOAA credit and navigation disclaimer in one naturally wrapping footer paragraph, remove the redundant prediction sentence and preserve personal/source credit on both display and location pages. | Complete |
 | TIDEDEMO-22 | Estimate subordinate-station curves and current heights with a tested half-cosine between bracketing predicted extremes, label estimates clearly, reuse the same level for the ocean, preserve harmonic samples and verify real station handling. | Complete |
 | TIDEDEMO-23 | Match the reference splash proportions with a larger supplied transparent Tidepin logo, responsive title and primary button, visible keyboard focus and production-build visual checks across screen sizes and themes. | Complete |
-| TIDEDEMO-25 | Tighten the short-phone splash layout so its artwork, primary action and required footer fit at320x568, preserving normal viewport proportions, focus and startup behavior. | Implemented; independent verification |
+| TIDEDEMO-25 | Tighten the short-phone splash layout so its artwork, primary action and required footer fit at320x568, including session-ended content, while preserving fresh/saved layouts, normal viewport proportions, focus and startup behavior. | Implemented; independent verification |
 
 The Start/display shell integrates shared controls, location selection and the station-local tide graph. Infrastructure templates and PR checks are separate from resource provisioning and deployment. The tide-data API and graph reuse the tested prediction-data modules and one shared upstream scheduler. NOAA predictions only; not for navigation.
 
