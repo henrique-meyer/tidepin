@@ -24,7 +24,7 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    proxy: { '/health': server, '/api': server, '/assets': server },
+    proxy: { '/health': server, '/api': server, '/assets': server, '/favicon.ico': server },
   },
   plugins: [{ name: 'location-path', configureServer(vite) { vite.middlewares.use((request, _response, next) => { if (request.url === '/location' || request.url?.startsWith('/location?')) request.url = request.url.replace('/location', '/location.html'); next(); }); } }],
 });

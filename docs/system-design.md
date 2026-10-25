@@ -21,6 +21,8 @@ flowchart LR
 
 The browser never calls NOAA directly. Maps/place search is a separate, deployment-supplied Google integration, not a tide source.
 
+Both document heads declare the original-artwork browser icons, an opaque 180-pixel light-background touch icon, a manifest with transparent 192/512-pixel icons and light/dark theme colors. These static files ship through the existing container asset copy, require no display session and retain the reserved Tidepin artwork terms. The development proxy includes the root favicon fallback.
+
 | Component | Responsibility |
 | --- | --- |
 | `src/server/app.ts` | Construct Fastify without opening a socket, validate routes, serve pages/assets |
@@ -47,7 +49,8 @@ The browser never calls NOAA directly. Maps/place search is a separate, deployme
 | `GET /api/stations/:id` | Public station metadata for a validated seven-character alphanumeric ID |
 | `GET /api/tides/:id` | Station, current local-day UTC window, request instant and independent prediction products |
 | `GET /api/tides/:id?refresh=1` | Explicit refresh respecting all upstream pacing/cooldowns |
-| `/assets/` | Original assets served separately from the built client |
+| `/assets/` | Original assets, browser/touch icons and web app manifest served separately from the built client |
+| `/favicon.ico` | Original-artwork ICO fallback with 16/32/48 alpha frames and a one-year public cache |
 
 The tide route resolves the station zone on the server and computes today's start/end using `stationDayWindow`. It rejects invalid IDs (400), unknown stations (404), unavailable zones (422) and metadata/route transport failures (503). Products can fail independently inside a successful response. Clients cannot choose arbitrary prediction ranges, datums or intervals. API responses have `Cache-Control: no-store`; server caches govern upstream freshness. Unrecognized paths return 404.
 

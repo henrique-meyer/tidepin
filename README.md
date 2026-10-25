@@ -82,7 +82,7 @@ TypeScript runs on Node 24 with Fastify; Vite builds two plain TypeScript browse
 | `src/client` | Start/display lifecycle, graph, location picker, controls, preferences and session timer |
 | `src/shared` | Canonical tide/station types, chart computations, interpolation and station-local dates |
 | `test` | Vitest tests and frozen fixtures |
-| `assets` | Original brand assets |
+| `assets` | Original brand artwork, tab/touch icons and web app manifest |
 | `docs` | System design, data behavior, task history, decisions and screenshots |
 | `infra` | Parameterized Bicep and deployment guide |
 | `.github/workflows` | Exact-head PR checks and main-branch container deployment |

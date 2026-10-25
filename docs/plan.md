@@ -2,7 +2,9 @@
 
 Every public change starts from a tracked task and records its scope here.
 
-Current follow-up **TIDEDEMO-26** links the existing personal footer credit safely while preserving its wording, layout and source notices. Status: Implemented; self-review.
+Current follow-up **TIDEDEMO-27** publishes original-artwork favicon, touch and manifest icons with correct metadata, routes and caching. Status: Implemented; self-review.
+
+Current follow-up **TIDEDEMO-26** links the existing personal footer credit safely while preserving its wording, layout and source notices. Status: Complete.
 
 | Task | Scope | Status |
 | --- | --- | --- |
