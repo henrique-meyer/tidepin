@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createGraphController, type GraphState } from '../src/client/graph-controller.js';
+import { graphRefreshFeedback } from '../src/client/graph-feedback.js';
 import { chartGeometry, displayHeight, eventLabelPositions, parseTideResponse, stationTicks } from '../src/client/graph-model.js';
 import { buildChartData, formatStationTime, plotFraction, stationDayWindow } from '../src/shared/tides.js';
 import type { TideResponse } from '../src/shared/tide-response.js';
@@ -19,6 +20,33 @@ function fixture(): TideResponse {
 }
 const preferences = { heightUnit: 'ft', clockFormat: '12h' } as const;
 const flush = async () => { for (let i = 0; i < 15; i++) await Promise.resolve(); };
+
+describe('refresh control feedback', () => {
+  it('distinguishes an actual in-flight refresh from an idle retry cooldown', () => {
+    const data = fixture();
+    const idle = { data, now, loading: false, error: null };
+    expect(graphRefreshFeedback(idle)).toMatchObject({ busy: false, disabled: false, waitSeconds: 0, message: '' });
+    expect(graphRefreshFeedback({ ...idle, loading: true })).toMatchObject({ busy: true, disabled: true, message: 'Updating predictions…' });
+    data.predictions.curve.status = 'saved';
+    data.predictions.curve.error = { code: 'throttled', message: 'Please wait.', retryAt: now + 60 };
+    expect(graphRefreshFeedback(idle)).toMatchObject({ busy: false, disabled: true, waitSeconds: 60 });
+    expect(graphRefreshFeedback(idle).message).toContain('Please wait 60 seconds');
+    expect(graphRefreshFeedback({ ...idle, now: now + 60 })).toMatchObject({ busy: false, disabled: false, waitSeconds: 0 });
+  });
+
+  it('preserves actionable failure and retry text while keeping a completed request non-busy', () => {
+    const data = fixture();
+    data.predictions.events.status = 'saved';
+    data.predictions.events.error = { code: 'http', message: 'Upstream unavailable.', retryAt: now + 120 };
+    const error = 'NOAA predictions are unavailable. Please try again later.';
+    const feedback = graphRefreshFeedback({ data, now, loading: false, error });
+    expect(feedback.busy).toBe(false);
+    expect(feedback.message).toContain('Showing saved predictions.');
+    expect(feedback.message).toContain(error);
+    expect(feedback.message).toContain('Please wait 120 seconds');
+    expect(graphRefreshFeedback({ data: null, now, loading: false, error }).message).toBe(error);
+  });
+});
 
 describe('graph presentation', () => {
   it('keeps station wall-clock ticks at elapsed UTC positions across 23/25-hour days', () => {
