@@ -22,7 +22,8 @@ Every public change starts from a tracked task and records its scope here.
 | TIDEDEMO-19 | Add a subtle static ocean background driven by the graph's current height and window range, with theme-aware colors, smooth finite level updates, reduced-motion support and no extra requests or wave animation. | Complete |
 | TIDEDEMO-20 | Add optional tiny, slow surface-wave motion within the existing ocean component, retaining its tide mapping/palette and stopping motion for reduced-motion, hidden and neutral states. | Complete |
 | TIDEDEMO-21 | Combine the NOAA credit and navigation disclaimer in one naturally wrapping footer paragraph, remove the redundant prediction sentence and preserve personal/source credit on both display and location pages. | Complete |
-| TIDEDEMO-22 | Estimate subordinate-station curves and current heights with a tested half-cosine between bracketing predicted extremes, label estimates clearly, reuse the same level for the ocean, preserve harmonic samples and verify real station handling. | Implemented; independent verification |
+| TIDEDEMO-22 | Estimate subordinate-station curves and current heights with a tested half-cosine between bracketing predicted extremes, label estimates clearly, reuse the same level for the ocean, preserve harmonic samples and verify real station handling. | Complete |
+| TIDEDEMO-24 | Correct idle/loading Refresh cursor behavior and prevent refresh-state layout shifts, with cursor and scroll-height checks across screen sizes, themes and supported browser engines. | Implemented; independent verification |
 
 The Start/display shell integrates shared controls, location selection and the station-local tide graph. Infrastructure templates and PR checks are separate from resource provisioning and deployment. The tide-data API and graph reuse the tested prediction-data modules and one shared upstream scheduler. NOAA predictions only; not for navigation.
 
