@@ -1,8 +1,10 @@
 /** The same runtime-origin placeholder used by the reference demo. Never derive it from request headers. */
 export const BASE_URL_PLACEHOLDER = '__PUBLIC_BASE_URL__';
-export const SOCIAL_IMAGE_PATH = '/assets/social/tidepin-social.png';
+export const SOCIAL_IMAGE_PATH = '/assets/social/tidepin-logo.png';
+/** Keep the filesystem/cache path separate from the versioned URL shown to crawlers. */
+export const SOCIAL_IMAGE_URL = `${SOCIAL_IMAGE_PATH}?v=logo-square-1`;
 export const SOCIAL_DESCRIPTION = 'Live tide predictions for US stations from NOAA CO-OPS, with a tide-level ocean display.';
-export const SOCIAL_IMAGE_ALT = 'Tidepin pin and wave logo with the words Tidepin and Tide predictions, at a glance, over an ocean-inspired background. NOAA CO-OPS.';
+export const SOCIAL_IMAGE_ALT = 'Tidepin logo';
 
 const INVALID_BASE_URL = 'PUBLIC_BASE_URL must be an HTTPS origin, or an HTTP loopback origin for local development, without credentials, a path, query or fragment.';
 
