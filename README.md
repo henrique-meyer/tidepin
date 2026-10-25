@@ -28,6 +28,8 @@ The visible display refreshes once a minute and when returning to the foreground
 
 The footer combines the linked NOAA credit and **Not for navigation.** in one naturally wrapping paragraph, with the personal/source credit separate. It remains on Start, display and location pages.
 
+Both pages include canonical and social sharing metadata in the server response. Set `PUBLIC_BASE_URL` to an HTTPS origin such as `https://your-domain.example` for a deployment. The public 1200 × 630 PNG preview uses the existing logo and ocean style; its editable SVG and PNG remain covered by the reserved artwork terms. Sharing metadata and the card omit the navigation notice, which remains once in each page's NOAA footer.
+
 ## Run locally
 
 Use Node 24 or newer:
@@ -47,6 +49,7 @@ NOAA requires no API key. An optional, deployment-supplied Google Maps key enabl
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `PORT` | `8080` | Process port, an integer from 1 to 65535 |
+| `PUBLIC_BASE_URL` | `http://localhost:<PORT>` | Absolute canonical/share origin; HTTPS outside loopback development, without credentials, a path, query or fragment |
 | `GOOGLE_MAPS_API_KEY` | Empty | Browser-restricted key for Maps JavaScript API and Places API (New) |
 | `GOOGLE_MAPS_MAP_ID` | `DEMO_MAP_ID` | Optional public map ID for the draggable advanced marker |
 | `SESSION_LIMIT_MINUTES` | `120` | Whole-minute display session limit, from 1 through 120 |
@@ -82,7 +85,7 @@ TypeScript runs on Node 24 with Fastify; Vite builds two plain TypeScript browse
 | `src/client` | Start/display lifecycle, graph, location picker, controls, preferences and session timer |
 | `src/shared` | Canonical tide/station types, chart computations, interpolation and station-local dates |
 | `test` | Vitest tests and frozen fixtures |
-| `assets` | Original brand artwork, tab/touch icons and web app manifest |
+| `assets` | Original brand artwork, tab/touch icons, web app manifest and editable social card |
 | `docs` | System design, data behavior, task history, decisions and screenshots |
 | `infra` | Parameterized Bicep and deployment guide |
 | `.github/workflows` | Exact-head PR checks and main-branch container deployment |

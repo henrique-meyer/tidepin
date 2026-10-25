@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import fastifyStatic from '@fastify/static';
 import Fastify, { LogController, type FastifyInstance } from 'fastify';
 import { createStationClient, type StationClient } from './station-client.js';
@@ -9,6 +9,7 @@ import type { StationCoordinates } from '../shared/stations.js';
 import { createNoaaClient } from './noaa-client.js';
 import { stationDayWindow } from '../shared/tides.js';
 import type { TideResponse } from '../shared/tide-response.js';
+import { fillBaseUrl, SOCIAL_IMAGE_PATH } from './metadata.js';
 
 export interface AppOptions {
   /** The built Vite client. Omitted while Vite serves development requests. */
@@ -77,6 +78,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   });
 
   if (options.assetsDir && existsSync(options.assetsDir)) {
+    const socialImage = resolve(options.assetsDir, SOCIAL_IMAGE_PATH.slice('/assets/'.length));
     const favicon = resolve(options.assetsDir, 'brand/icons/favicon.ico');
     if (existsSync(favicon)) {
       app.get('/favicon.ico', async (_request, reply) => reply
@@ -88,11 +90,31 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
       root: options.assetsDir,
       prefix: '/assets/',
       decorateReply: false,
+      setHeaders(reply, filePath) {
+        // A stable share-card filename can be revalidated daily; do not mark it immutable.
+        if (filePath === socialImage) reply.header('Cache-Control', 'public, max-age=86400');
+      },
     });
   }
   if (options.clientDir && existsSync(options.clientDir)) {
-    await app.register(fastifyStatic, { root: options.clientDir, prefix: '/' });
-    app.get('/location', async (_request, reply) => reply.sendFile('location.html'));
+    // Fill immutable built pages once. Explicit aliases also prevent the static route exposing raw tokens.
+    const clientDir = options.clientDir;
+    const [indexHtml, locationHtml] = await Promise.all(['index.html', 'location.html'].map(async (file) =>
+      fillBaseUrl(await readFile(join(clientDir, file), 'utf8'), config.publicBaseUrl)));
+    await app.register(fastifyStatic, {
+      root: clientDir, prefix: '/', index: false,
+      // The plugin decodes/normalizes this path before authorization. HTML belongs only to filled routes,
+      // including file-with-slash aliases that the underlying file server would otherwise open.
+      allowedPath: pathname => !/\.html(?:\/|$)/i.test(pathname),
+    });
+    for (const path of ['/', '/index.html']) {
+      app.get(path, async (_request, reply) => reply.type('text/html; charset=utf-8')
+        .header('Cache-Control', 'no-cache').send(indexHtml));
+    }
+    for (const path of ['/location', '/location.html']) {
+      app.get(path, async (_request, reply) => reply.type('text/html; charset=utf-8')
+        .header('Cache-Control', 'no-cache').send(locationHtml));
+    }
   }
 
   return app;

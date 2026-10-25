@@ -2,7 +2,9 @@
 
 Every public change starts from a tracked task and records its scope here.
 
-Current follow-up **TIDEDEMO-29** improves normal tide-display fit on short laptop viewports while preserving readable content, data behavior and other responsive layouts. Status: Implemented; self-review.
+Current follow-up **TIDEDEMO-28** publishes plain sharing descriptions and an original-logo social card with runtime canonical URLs, public crawler access and exactly one product navigation notice in each page footer. Status: Implemented; independent verification.
+
+Current follow-up **TIDEDEMO-29** improves normal tide-display fit on short laptop viewports while preserving readable content, data behavior and other responsive layouts. Status: Complete.
 
 Current follow-up **TIDEDEMO-27** publishes original-artwork favicon, touch and manifest icons with correct metadata, routes and caching. Status: Complete.
 
@@ -39,6 +41,7 @@ The tracking groups are Step 1 infrastructure (TIDEDEMO-1), Step 2 UI/UX (TIDEDE
 
 | Task | Scope | Status |
 | --- | --- | --- |
-| TIDEDEMO-24 | Correct idle/loading Refresh cursor behavior and prevent refresh-state layout shifts, with cursor and scroll-height checks across screen sizes, themes and supported browser engines. | Implemented; independent verification |
+| TIDEDEMO-24 | Correct idle/loading Refresh cursor behavior and prevent refresh-state layout shifts, with cursor and scroll-height checks across screen sizes, themes and supported browser engines. | Complete |
 | TIDEDEMO-27 | Publish original-artwork browser, touch and manifest icons with page metadata, static routes and caching. | Complete |
-| TIDEDEMO-29 | Reclaim vertical padding and gaps on short desktop displays so representative tide graphs fit common laptop heights, preserving plot size, typography, controls, full content and natural scrolling when needed. | Implemented; self-review |
+| TIDEDEMO-29 | Reclaim vertical padding and gaps on short desktop displays so representative tide graphs fit common laptop heights, preserving plot size, typography, controls, full content and natural scrolling when needed. | Complete |
+| TIDEDEMO-28 | Publish runtime sharing metadata and an editable original-logo social card, preserve public crawler access and keep the product navigation notice solely in each NOAA footer. | Implemented; independent verification |

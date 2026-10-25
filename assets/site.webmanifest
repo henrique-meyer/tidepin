@@ -1,7 +1,7 @@
 {
   "name": "Tidepin",
   "short_name": "Tidepin",
-  "description": "NOAA CO-OPS tide predictions. Not for navigation.",
+  "description": "NOAA CO-OPS tide predictions.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fbf7ee",

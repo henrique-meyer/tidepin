@@ -102,7 +102,7 @@ describe('application contract', () => {
 
 describe('runtime configuration', () => {
   it('uses port 8080 by default and accepts an explicit port', () => {
-    expect(loadConfig({})).toEqual({ port: 8080, googleMapsApiKey: '', googleMapsMapId: 'DEMO_MAP_ID', sessionLimitMinutes: 120 });
+    expect(loadConfig({})).toEqual({ port: 8080, publicBaseUrl: 'http://localhost:8080', googleMapsApiKey: '', googleMapsMapId: 'DEMO_MAP_ID', sessionLimitMinutes: 120 });
     expect(loadConfig({ PORT: '9090' }).port).toBe(9090);
   });
 
