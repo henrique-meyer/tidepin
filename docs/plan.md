@@ -2,6 +2,8 @@
 
 Every public change starts from a tracked task and records its scope here.
 
+Current follow-up **TIDEDEMO-26** links the existing personal footer credit safely while preserving its wording, layout and source notices. Status: Implemented; self-review.
+
 | Task | Scope | Status |
 | --- | --- | --- |
 | TIDEDEMO-4 | Scaffold the Node 24 / TypeScript Fastify server, Vite client, tooling, non-root container, original Tidepin logo, and hosting/stack decisions. | Complete |

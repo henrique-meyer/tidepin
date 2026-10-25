@@ -93,7 +93,7 @@ The water uses very faint theme-token color mixes, a soft surface line, no inter
 
 For an active tide with normal motion, a single six-pixel SVG strip replaces the straight surface stroke with a tiny rolling line, using the same color and one-pixel stroke. Its duplicated geometry has only 1.5 pixels of vertical amplitude; a 36-second CSS transform moves the entire strip by half its width and loops seamlessly. Paths stay unchanged and the water body's level/fill do not animate continuously. No request, timer or per-frame JavaScript is added. One `visibilitychange` listener pauses the CSS animation while hidden and is removed on `destroy()`. Neutral/stopped states remove waves; reduced motion retains the original static surface. Increased contrast and forced colors still hide the whole decorative layer.
 
-The footer's stable `footer-source` paragraph combines the NOAA link and “Not for navigation.” with natural wrapping. Personal/source credit stays in `footer-credit`, and the picker retains its privacy note. External links use `rel="noopener"`. A flexible main row keeps the footer below content rather than overlaying the chart.
+The footer's stable `footer-source` paragraph combines the NOAA link and “Not for navigation.” with natural wrapping. Personal/source credit stays in `footer-credit`, and the picker retains its privacy note. Only the designer's name links to the personal site, using the existing footer-link appearance and a new tab with `noopener noreferrer`. External links use `rel="noopener"`. A flexible main row keeps the footer below content rather than overlaying the chart.
 
 ## State and privacy
 
