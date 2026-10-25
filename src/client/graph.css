@@ -4,8 +4,10 @@
 .tide-graph { width: 100%; min-width: 0; display: grid; gap: var(--space-3); }
 .graph-meta, .graph-footnote { color: var(--color-text-secondary); font-size: var(--font-footnote-size); line-height: var(--font-footnote-line-height); }
 .graph-meta { margin-top: calc(-1 * var(--space-2)); }
-/* Reserve wrapped saved/error/retry feedback without changing the loaded chart's footprint. */
-.graph-status { display: flex; align-items: center; min-block-size: calc(4 * var(--font-footnote-line-height)); }
+/* Size feedback intrinsically at its actual width/font scale; never clip the live message. */
+.graph-refresh-feedback { display: grid; min-width: 0; }
+.graph-status, .graph-feedback-sizer { grid-area: 1 / 1; display: flex; align-items: center; }
+.graph-feedback-sizer { visibility: hidden; pointer-events: none; user-select: none; }
 .graph-card { margin: 0; padding: var(--space-4); background: var(--color-surface); border: 1px solid var(--color-separator); border-radius: var(--radius-card); }
 .graph-card h3 { margin: 0 0 var(--space-1); font-size: var(--font-footnote-size); line-height: var(--font-footnote-line-height); font-weight: var(--font-body-emphasis-weight); color: var(--color-text-secondary); }
 .graph-current { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
@@ -64,6 +66,5 @@
   .graph-chart { grid-row: 3; }
   .graph-table-section { grid-row: 4; }
   .graph-refresh { grid-row: 5; }
-  .graph-status { min-block-size: calc(2 * var(--font-footnote-line-height)); }
   .graph-table-section table { font-size: var(--font-secondary-size); }
 }

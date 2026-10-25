@@ -3,7 +3,7 @@ import { buildChartData, formatStationTime, stationDayWindow, type TideEvent } f
 import type { DisplaySettings } from './display-settings.js';
 import { createGraphController, type GraphState } from './graph-controller.js';
 import { chartGeometry, displayHeight, eventLabelPositions, localClock, stationTicks } from './graph-model.js';
-import { graphRefreshFeedback } from './graph-feedback.js';
+import { graphRefreshFeedback, REFRESH_FEEDBACK_SIZER } from './graph-feedback.js';
 
 export type ChartData = Pick<ReturnType<typeof buildChartData>, 'chartPoints' | 'current'>;
 export interface GraphOptions { onChartData?: (data: ChartData | null) => void; onStation?: (name: string, stationId: string) => void }
@@ -85,7 +85,7 @@ export function mountTideGraph(root: HTMLElement, options: GraphOptions = {}) {
       <article class="graph-card graph-current"><div><h3>${estimated ? 'Estimated' : 'Predicted'} height now</h3><p class="graph-current-value">${chart.current ? escape(height(chart.current.heightMeters)) : '—'}</p></div><div class="graph-current-context"><p>${escape(time(now))}</p><p class="graph-footnote">${escape(zone)} · MLLW</p>${!chart.current ? '<p class="graph-footnote">Current height unavailable</p>' : ''}</div></article>
       <div class="graph-events">${eventCard(chart.nextHigh, 'High')}${eventCard(chart.nextLow, 'Low')}</div>
       ${chartMarkup}<section class="graph-table-section"><h3>High &amp; low tides</h3><div class="graph-table-scroll"><table><caption class="graph-sr-only">${escape(date)}, ${escape(zone)}, predicted heights relative to MLLW</caption><thead><tr><th scope="col">Event</th><th scope="col">Station time</th><th scope="col">Height (${unit})</th></tr></thead><tbody>${rows || `<tr><td colspan="3">${products.events.data === null ? 'High/low predictions are unavailable.' : 'No high or low tides in this day.'}</td></tr>`}</tbody></table></div></section>
-      <div class="graph-refresh"><p class="graph-status graph-footnote" role="status">${feedback.warning ? '<span aria-hidden="true">⚠&nbsp;</span>' : ''}${escape(feedback.message || 'Predicted heights relative to MLLW. Not for navigation.')}</p><button class="graph-retry" type="button" aria-busy="${feedback.busy}" ${feedback.disabled ? 'disabled' : ''}>Refresh predictions</button></div>`;
+      <div class="graph-refresh"><div class="graph-refresh-feedback"><p class="graph-feedback-sizer graph-footnote" aria-hidden="true"><span>⚠&nbsp;</span>${escape(REFRESH_FEEDBACK_SIZER)}</p><p class="graph-status graph-footnote" role="status">${feedback.warning ? '<span aria-hidden="true">⚠&nbsp;</span>' : ''}${escape(feedback.message || 'Predicted heights relative to MLLW. Not for navigation.')}</p></div><button class="graph-retry" type="button" aria-busy="${feedback.busy}" ${feedback.disabled ? 'disabled' : ''}>Refresh predictions</button></div>`;
     root.querySelector('button')?.addEventListener('click', () => { void controller.refresh(true); });
   }
   const controller = createGraphController({ render, visible: () => !document.hidden, sessionActive: () => document.body.dataset.displayState === 'display' });
