@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/server/config.js';
-import { fillBaseUrl, normalizePublicBaseUrl, SOCIAL_DESCRIPTION, SOCIAL_IMAGE_PATH } from '../src/server/metadata.js';
+import { fillBaseUrl, normalizePublicBaseUrl, SOCIAL_DESCRIPTION, SOCIAL_IMAGE_URL } from '../src/server/metadata.js';
 
 describe('public sharing origin', () => {
   it.each([
@@ -36,9 +36,9 @@ describe('public sharing origin', () => {
   });
 
   it('fills every trusted HTML token with absolute URLs and leaves unrelated content alone', () => {
-    const html = `<link rel="canonical" href="__PUBLIC_BASE_URL__/" /><meta property="og:image" content="__PUBLIC_BASE_URL__${SOCIAL_IMAGE_PATH}" /><p>Keep me &amp; my text</p>`;
+    const html = `<link rel="canonical" href="__PUBLIC_BASE_URL__/" /><meta property="og:image" content="__PUBLIC_BASE_URL__${SOCIAL_IMAGE_URL}" /><p>Keep me &amp; my text</p>`;
     const filled = fillBaseUrl(html, 'https://your-domain.example/');
-    expect(filled).toBe('<link rel="canonical" href="https://your-domain.example/" /><meta property="og:image" content="https://your-domain.example/assets/social/tidepin-social.png" /><p>Keep me &amp; my text</p>');
+    expect(filled).toBe('<link rel="canonical" href="https://your-domain.example/" /><meta property="og:image" content="https://your-domain.example/assets/social/tidepin-logo.png?v=logo-square-1" /><p>Keep me &amp; my text</p>');
     expect(filled).not.toContain('__PUBLIC_BASE_URL__');
     expect(SOCIAL_DESCRIPTION).toContain('NOAA CO-OPS');
     expect(SOCIAL_DESCRIPTION).not.toMatch(/not for navigation/i);

@@ -28,7 +28,7 @@ The visible display refreshes once a minute and when returning to the foreground
 
 The footer combines the linked NOAA credit and **Not for navigation.** in one naturally wrapping paragraph, with the personal/source credit separate. It remains on Start, display and location pages.
 
-Both pages include canonical and social sharing metadata in the server response. Set `PUBLIC_BASE_URL` to an HTTPS origin such as `https://your-domain.example` for a deployment. The public 1200 × 630 PNG preview uses the existing logo and ocean style; its editable SVG and PNG remain covered by the reserved artwork terms. Sharing metadata and the card omit the navigation notice, which remains once in each page's NOAA footer.
+Both pages include canonical and social sharing metadata in the server response. Set `PUBLIC_BASE_URL` to an HTTPS origin such as `https://your-domain.example` for a deployment. The public 1024 × 1024 PNG preview contains only the existing logo, centered with generous padding on the solid dark app background. It remains covered by the reserved artwork terms. Both image URLs carry a version query so crawlers can request the new asset; already-shared links may retain a cached preview until the platform refreshes it. Sharing titles and descriptions stay plain, and the navigation notice remains once in each page's NOAA footer.
 
 ## Run locally
 
@@ -85,7 +85,7 @@ TypeScript runs on Node 24 with Fastify; Vite builds two plain TypeScript browse
 | `src/client` | Start/display lifecycle, graph, location picker, controls, preferences and session timer |
 | `src/shared` | Canonical tide/station types, chart computations, interpolation and station-local dates |
 | `test` | Vitest tests and frozen fixtures |
-| `assets` | Original brand artwork, tab/touch icons, web app manifest and editable social card |
+| `assets` | Original brand artwork, tab/touch icons, web app manifest and logo-only sharing preview |
 | `docs` | System design, data behavior, task history, decisions and screenshots |
 | `infra` | Parameterized Bicep and deployment guide |
 | `.github/workflows` | Exact-head PR checks and main-branch container deployment |

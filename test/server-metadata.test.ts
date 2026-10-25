@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/server/app.js';
 import { loadConfig } from '../src/server/config.js';
-import { SOCIAL_DESCRIPTION, SOCIAL_IMAGE_ALT, SOCIAL_IMAGE_PATH } from '../src/server/metadata.js';
+import { SOCIAL_DESCRIPTION, SOCIAL_IMAGE_ALT, SOCIAL_IMAGE_PATH, SOCIAL_IMAGE_URL } from '../src/server/metadata.js';
 
 describe('server-rendered sharing metadata', () => {
   const cleanup: (() => Promise<unknown>)[] = [];
@@ -38,12 +38,12 @@ describe('server-rendered sharing metadata', () => {
         for (const key of ['og:title', 'og:description', 'og:image', 'og:image:alt', 'twitter:title', 'twitter:description', 'twitter:image', 'twitter:image:alt']) {
           expect(html).toMatch(new RegExp(`<meta (?:property|name)="${key}" content="[^"]+"`));
         }
-        expect(html).toContain('<meta name="twitter:card" content="summary_large_image"');
-        expect(html).toContain(`<meta property="og:image" content="${origin}${SOCIAL_IMAGE_PATH}"`);
-        expect(html).toContain(`<meta name="twitter:image" content="${origin}${SOCIAL_IMAGE_PATH}"`);
+        expect(html).toContain('<meta name="twitter:card" content="summary"');
+        expect(html).toContain(`<meta property="og:image" content="${origin}${SOCIAL_IMAGE_URL}"`);
+        expect(html).toContain(`<meta name="twitter:image" content="${origin}${SOCIAL_IMAGE_URL}"`);
         expect(html).toContain('<meta property="og:image:type" content="image/png"');
-        expect(html).toContain('<meta property="og:image:width" content="1200"');
-        expect(html).toContain('<meta property="og:image:height" content="630"');
+        expect(html).toContain('<meta property="og:image:width" content="1024"');
+        expect(html).toContain('<meta property="og:image:height" content="1024"');
         expect(html).toContain(`<meta property="og:image:alt" content="${SOCIAL_IMAGE_ALT}"`);
         expect(html.match(/not for navigation/gi)).toHaveLength(1);
         expect(html.split('</head>')[0]).not.toMatch(/not for navigation/i);
@@ -90,22 +90,26 @@ describe('server-rendered sharing metadata', () => {
     }
   });
 
-  it('publishes the card without a client session, with correct PNG bytes, caching, HEAD and revalidation', async () => {
+  it('publishes the versioned square preview without a client session, with PNG bytes, caching, HEAD and revalidation', async () => {
     const app = await buildApp({ assetsDir: resolve('assets'), config: loadConfig({ SESSION_LIMIT_MINUTES: '1' }) });
     cleanup.push(() => app.close());
-    const expected = await readFile(resolve('assets/social/tidepin-social.png'));
-    const response = await app.inject({ url: SOCIAL_IMAGE_PATH, headers: { 'user-agent': 'Twitterbot/1.0' } });
+    const expected = await readFile(resolve('assets', SOCIAL_IMAGE_PATH.slice('/assets/'.length)));
+    expect(SOCIAL_IMAGE_URL).toMatch(/\?v=[A-Za-z0-9-]+$/);
+    const response = await app.inject({ url: SOCIAL_IMAGE_URL, headers: { 'user-agent': 'Twitterbot/1.0' } });
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toBe('image/png');
     expect(response.headers['cache-control']).toBe('public, max-age=86400');
     expect(response.rawPayload).toEqual(expected);
     expect(response.headers['set-cookie']).toBeUndefined();
-    const head = await app.inject({ method: 'HEAD', url: SOCIAL_IMAGE_PATH });
+    const head = await app.inject({ method: 'HEAD', url: SOCIAL_IMAGE_URL });
     expect(head.statusCode).toBe(200);
     expect(head.headers['content-length']).toBe(String(expected.length));
     expect(head.body).toBe('');
-    const cached = await app.inject({ url: SOCIAL_IMAGE_PATH, headers: { 'if-none-match': response.headers.etag as string } });
+    const cached = await app.inject({ url: SOCIAL_IMAGE_URL, headers: { 'if-none-match': response.headers.etag as string } });
     expect(cached.statusCode).toBe(304);
     expect(cached.body).toBe('');
+    for (const oldAsset of ['/assets/social/tidepin-social.png', '/assets/social/tidepin-social.svg']) {
+      expect((await app.inject({ url: oldAsset })).statusCode).toBe(404);
+    }
   });
 });
