@@ -14,10 +14,10 @@ export function mountStartScreen(root: HTMLElement, actions: StartScreenActions)
   section.setAttribute('aria-labelledby', 'start-title');
   const logo = document.createElement('img');
   logo.className = 'start-mark';
-  logo.src = '/assets/brand/logo/logo.svg';
-  logo.alt = '';
-  logo.width = 64;
-  logo.height = 64;
+  logo.src = '/assets/brand/logo/tidepin-transparent-logo.png';
+  logo.alt = 'Tidepin tide-wave location pin';
+  logo.width = 736;
+  logo.height = 756;
   const title = document.createElement('h1');
   title.id = 'start-title';
   title.textContent = 'Tidepin';

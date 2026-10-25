@@ -23,7 +23,7 @@ Every public change starts from a tracked task and records its scope here.
 | TIDEDEMO-20 | Add optional tiny, slow surface-wave motion within the existing ocean component, retaining its tide mapping/palette and stopping motion for reduced-motion, hidden and neutral states. | Complete |
 | TIDEDEMO-21 | Combine the NOAA credit and navigation disclaimer in one naturally wrapping footer paragraph, remove the redundant prediction sentence and preserve personal/source credit on both display and location pages. | Complete |
 | TIDEDEMO-22 | Estimate subordinate-station curves and current heights with a tested half-cosine between bracketing predicted extremes, label estimates clearly, reuse the same level for the ocean, preserve harmonic samples and verify real station handling. | Complete |
-| TIDEDEMO-23 | Match the reference splash proportions with a larger supplied transparent Tidepin logo, responsive title and primary button, visible keyboard focus and production-build visual checks across screen sizes and themes. | In progress |
+| TIDEDEMO-23 | Match the reference splash proportions with a larger supplied transparent Tidepin logo, responsive title and primary button, visible keyboard focus and production-build visual checks across screen sizes and themes. | Implemented; independent verification |
 
 The Start/display shell integrates shared controls, location selection and the station-local tide graph. Infrastructure templates and PR checks are separate from resource provisioning and deployment. The tide-data API and graph reuse the tested prediction-data modules and one shared upstream scheduler. NOAA predictions only; not for navigation.
 

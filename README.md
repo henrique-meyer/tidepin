@@ -16,6 +16,8 @@ Captured locally from public NOAA predictions on 2026-10-24. These images illust
 
 ## Use the display
 
+The Start screen presents the original transparent Tidepin artwork with a large, responsive primary button. The supplied 1024-pixel RGBA logo is losslessly trimmed to its 736 × 756 artwork bounds and compressed as PNG, retaining transparency and every remaining artwork pixel; the Tidepin name, logos and artwork remain reserved as described below.
+
 Open the main page and press **Start display** to use a saved station. On a first visit, allow browser location or choose **Set location** to open `/location`. The chosen point resolves to the nearest NOAA prediction station. The picker supports place search, a map click, a draggable pin and **Use current location**. Save returns directly to the display once; an ordinary reload presents Start again.
 
 The station name and identifier identify which predictions are shown. Dates and times use that station's validated IANA time zone, including daylight saving; they do not switch to the device's zone. Harmonic stations use NOAA's six-minute predictions, with gaps left visible. For subordinate stations offering only predicted highs and lows, the demo estimates the curve between consecutive extremes with a half-cosine and labels both the curve and current height as **estimated**. The ocean background uses that same estimated current level. High/low markers, cards and the table always retain NOAA's actual predicted extremes. Estimates never extend beyond available extremes, and are not observations or navigation guidance. Missing predictions and unavailable station zones have clear fallback messages. See the [estimation decision](docs/decisions/0005-subordinate-curve-estimates.md) for limitations.

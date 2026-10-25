@@ -23,8 +23,8 @@
 }
 
 .start-mark {
-  width: min(20svh, 45vw);
-  height: auto;
+  width: auto;
+  height: min(20svh, 60vw);
   flex-shrink: 0;
 }
 
@@ -46,7 +46,7 @@
 }
 
 .start-button {
-  font-size: clamp(1.5rem, min(6svh, 7.5vw), 4rem);
+  font-size: clamp(1.5rem, 6svh, 4rem);
   line-height: 1.2;
   font-weight: 700;
   min-height: 48px;
@@ -54,6 +54,13 @@
   border-radius: 0.4em;
   color: var(--color-on-primary);
   background: var(--color-primary);
+}
+
+@media (max-width: 480px) {
+  .start-button {
+    /* Keep whole words readable when the large reference type wraps on phones. */
+    padding-inline: var(--space-6);
+  }
 }
 
 .start-message {
