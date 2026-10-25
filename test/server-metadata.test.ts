@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -56,6 +56,37 @@ describe('server-rendered sharing metadata', () => {
       expect(head.statusCode).toBe(200);
       expect(head.headers['content-type']).toContain('text/html');
       expect(head.body).toBe('');
+    }
+  });
+
+  it('blocks generic HTML file aliases while preserving filled encoded routes and built scripts/styles', async () => {
+    const clientDir = await mkdtemp(join(tmpdir(), 'tidepin-route-alias-'));
+    cleanup.push(() => rm(clientDir, { recursive: true, force: true }));
+    await writeFile(join(clientDir, 'index.html'), '<link rel="canonical" href="__PUBLIC_BASE_URL__/" />');
+    await writeFile(join(clientDir, 'location.html'), '<link rel="canonical" href="__PUBLIC_BASE_URL__/location" />');
+    await mkdir(join(clientDir, 'static'));
+    await writeFile(join(clientDir, 'static/app.js'), 'export const ready = true;');
+    await writeFile(join(clientDir, 'static/app.css'), 'body { color: navy; }');
+    const app = await buildApp({ clientDir, config: loadConfig({ PUBLIC_BASE_URL: 'https://your-domain.example' }) });
+    cleanup.push(() => app.close());
+    for (const url of ['/index.html/', '/location.html/', '/index.html%2f', '/location.html%2F', '/%69ndex.html/', '/loc%61tion.html/', '/index%2ehtml/', '/location%2ehtml/', '/index.html/.', '/location.html/%2e', '//index.html', '/index.html/?share=1']) {
+      for (const method of ['GET', 'HEAD'] as const) {
+        const response = await app.inject({ method, url });
+        expect([400, 403, 404], url).toContain(response.statusCode);
+        expect(response.body, url).not.toContain('__PUBLIC_BASE_URL__');
+      }
+    }
+    for (const url of ['/%69ndex.html', '/index%2ehtml', '/loc%61tion.html', '/location%2ehtml', '/index.html?share=1', '/location.html?share=1']) {
+      const response = await app.inject(url);
+      expect(response.statusCode, url).toBe(200);
+      expect(response.body, url).not.toContain('__PUBLIC_BASE_URL__');
+      expect(response.body, url).toContain('href="https://your-domain.example/');
+    }
+    for (const [url, content, mime] of [['/static/app.js', 'export const ready = true;', 'javascript'], ['/static/app.css', 'body { color: navy; }', 'text/css']]) {
+      const response = await app.inject(url!);
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toBe(content);
+      expect(response.headers['content-type']).toContain(mime!);
     }
   });
 

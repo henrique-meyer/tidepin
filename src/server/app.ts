@@ -101,7 +101,12 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
     const clientDir = options.clientDir;
     const [indexHtml, locationHtml] = await Promise.all(['index.html', 'location.html'].map(async (file) =>
       fillBaseUrl(await readFile(join(clientDir, file), 'utf8'), config.publicBaseUrl)));
-    await app.register(fastifyStatic, { root: clientDir, prefix: '/', index: false });
+    await app.register(fastifyStatic, {
+      root: clientDir, prefix: '/', index: false,
+      // The plugin decodes/normalizes this path before authorization. HTML belongs only to filled routes,
+      // including file-with-slash aliases that the underlying file server would otherwise open.
+      allowedPath: pathname => !/\.html(?:\/|$)/i.test(pathname),
+    });
     for (const path of ['/', '/index.html']) {
       app.get(path, async (_request, reply) => reply.type('text/html; charset=utf-8')
         .header('Cache-Control', 'no-cache').send(indexHtml));
