@@ -10,7 +10,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-6);
+  /* Reference splash proportions, with width limits for narrow screens. */
+  gap: 3svh;
   width: 100%;
   overflow-wrap: anywhere;
 }
@@ -22,8 +23,16 @@
 }
 
 .start-mark {
-  width: calc(var(--space-8) + var(--space-8));
+  width: min(20svh, 45vw);
   height: auto;
+  flex-shrink: 0;
+}
+
+.start-screen h1 {
+  margin-top: -1svh;
+  font-size: clamp(2rem, 6svh, 4rem);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
 }
 
 .start-button,
@@ -37,12 +46,21 @@
 }
 
 .start-button {
+  font-size: clamp(1.5rem, min(6svh, 7.5vw), 4rem);
+  line-height: 1.2;
+  font-weight: 700;
+  min-height: 48px;
+  padding: 0.5em 1.4em;
+  border-radius: 0.4em;
   color: var(--color-on-primary);
   background: var(--color-primary);
 }
 
 .start-message {
-  min-height: var(--font-body-line-height);
+  min-height: 1.4em;
+  max-width: 80vw;
+  font-size: clamp(1rem, 2.4svh, 1.5rem);
+  line-height: 1.4;
   color: var(--color-text-secondary);
 }
 
