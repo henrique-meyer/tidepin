@@ -4,8 +4,10 @@
 .tide-graph { width: 100%; min-width: 0; display: grid; gap: var(--space-3); }
 .graph-meta, .graph-footnote { color: var(--color-text-secondary); font-size: var(--font-footnote-size); line-height: var(--font-footnote-line-height); }
 .graph-meta { margin-top: calc(-1 * var(--space-2)); }
-.graph-status:empty { display: none; }
-.graph-status { padding: var(--space-3); border-radius: var(--radius-card); background: var(--color-banner-container); color: var(--color-on-banner); font-size: var(--font-footnote-size); }
+/* Size feedback intrinsically at its actual width/font scale; never clip the live message. */
+.graph-refresh-feedback { display: grid; min-width: 0; }
+.graph-status, .graph-feedback-sizer { grid-area: 1 / 1; display: flex; align-items: center; }
+.graph-feedback-sizer { visibility: hidden; pointer-events: none; user-select: none; }
 .graph-card { margin: 0; padding: var(--space-4); background: var(--color-surface); border: 1px solid var(--color-separator); border-radius: var(--radius-card); }
 .graph-card h3 { margin: 0 0 var(--space-1); font-size: var(--font-footnote-size); line-height: var(--font-footnote-line-height); font-weight: var(--font-body-emphasis-weight); color: var(--color-text-secondary); }
 .graph-current { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
@@ -40,9 +42,10 @@
 .graph-table-section th:last-child { width: 23%; }
 .graph-table-section .graph-table-height { text-align: right; font-variant-numeric: tabular-nums; }
 .graph-state { min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); text-align: center; }
-.graph-refresh { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.graph-refresh { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); }
 .graph-retry { padding: var(--space-2) var(--space-3); color: var(--color-accent-text); border: 1px solid var(--color-separator); border-radius: var(--radius-button); background: var(--color-surface); cursor: pointer; font-size: var(--font-footnote-size); }
-.graph-retry:disabled { cursor: wait; opacity: .65; }
+.graph-retry:disabled { opacity: .65; }
+.graph-retry[aria-busy="true"] { cursor: progress; }
 .graph-spinner { width: 28px; height: 28px; border: 3px solid var(--color-separator); border-top-color: var(--color-primary); border-radius: 50%; animation: graph-spin 1s linear infinite; }
 .graph-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @keyframes graph-spin { to { transform: rotate(360deg); } }
@@ -53,15 +56,15 @@
   .graph-current { align-items: flex-start; }
   .graph-current-context { max-width: 46%; }
   .graph-table-section th, .graph-table-section td { padding: var(--space-2); font-size: var(--font-footnote-size); }
+  .graph-refresh { grid-template-columns: minmax(0, 1fr); justify-items: start; }
 }
 @media (min-width: 1000px) {
   .tide-graph { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
-  .graph-meta, .graph-status, .graph-chart, .graph-table-section, .graph-refresh { grid-column: 1 / -1; }
+  .graph-meta, .graph-chart, .graph-table-section, .graph-refresh { grid-column: 1 / -1; }
   .graph-meta { grid-row: 1; }
-  .graph-status { grid-row: 2; }
-  .graph-current, .graph-events { grid-row: 3; }
-  .graph-chart { grid-row: 4; }
-  .graph-table-section { grid-row: 5; }
-  .graph-refresh { grid-row: 6; }
+  .graph-current, .graph-events { grid-row: 2; }
+  .graph-chart { grid-row: 3; }
+  .graph-table-section { grid-row: 4; }
+  .graph-refresh { grid-row: 5; }
   .graph-table-section table { font-size: var(--font-secondary-size); }
 }

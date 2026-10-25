@@ -28,3 +28,9 @@ Every public change starts from a tracked task and records its scope here.
 The Start/display shell integrates shared controls, location selection and the station-local tide graph. Infrastructure templates and PR checks are separate from resource provisioning and deployment. The tide-data API and graph reuse the tested prediction-data modules and one shared upstream scheduler. NOAA predictions only; not for navigation.
 
 The tracking groups are Step 1 infrastructure (TIDEDEMO-1), Step 2 UI/UX (TIDEDEMO-2) and Step 3 tide graph (TIDEDEMO-3). The table preserves task-level work rather than treating an epic as an implementation change. Planned or review-pending features are not claims about the shipped application.
+
+## Follow-up work
+
+| Task | Scope | Status |
+| --- | --- | --- |
+| TIDEDEMO-24 | Correct idle/loading Refresh cursor behavior and prevent refresh-state layout shifts, with cursor and scroll-height checks across screen sizes, themes and supported browser engines. | Implemented; independent verification |
