@@ -2,7 +2,9 @@
 
 Every public change starts from a tracked task and records its scope here.
 
-Current follow-up **TIDEDEMO-27** publishes original-artwork favicon, touch and manifest icons with correct metadata, routes and caching. Status: Implemented; self-review.
+Current follow-up **TIDEDEMO-29** improves normal tide-display fit on short laptop viewports while preserving readable content, data behavior and other responsive layouts. Status: Implemented; self-review.
+
+Current follow-up **TIDEDEMO-27** publishes original-artwork favicon, touch and manifest icons with correct metadata, routes and caching. Status: Complete.
 
 Current follow-up **TIDEDEMO-26** links the existing personal footer credit safely while preserving its wording, layout and source notices. Status: Complete.
 
@@ -38,3 +40,5 @@ The tracking groups are Step 1 infrastructure (TIDEDEMO-1), Step 2 UI/UX (TIDEDE
 | Task | Scope | Status |
 | --- | --- | --- |
 | TIDEDEMO-24 | Correct idle/loading Refresh cursor behavior and prevent refresh-state layout shifts, with cursor and scroll-height checks across screen sizes, themes and supported browser engines. | Implemented; independent verification |
+| TIDEDEMO-27 | Publish original-artwork browser, touch and manifest icons with page metadata, static routes and caching. | Complete |
+| TIDEDEMO-29 | Reclaim vertical padding and gaps on short desktop displays so representative tide graphs fit common laptop heights, preserving plot size, typography, controls, full content and natural scrolling when needed. | Implemented; self-review |
