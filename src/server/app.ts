@@ -1,4 +1,6 @@
 import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import fastifyStatic from '@fastify/static';
 import Fastify, { LogController, type FastifyInstance } from 'fastify';
 import { createStationClient, type StationClient } from './station-client.js';
@@ -75,6 +77,13 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
   });
 
   if (options.assetsDir && existsSync(options.assetsDir)) {
+    const favicon = resolve(options.assetsDir, 'brand/icons/favicon.ico');
+    if (existsSync(favicon)) {
+      app.get('/favicon.ico', async (_request, reply) => reply
+        .type('image/vnd.microsoft.icon')
+        .header('Cache-Control', 'public, max-age=31536000')
+        .send(await readFile(favicon)));
+    }
     await app.register(fastifyStatic, {
       root: options.assetsDir,
       prefix: '/assets/',
