@@ -41,6 +41,6 @@ describe('public sharing origin', () => {
     expect(filled).toBe('<link rel="canonical" href="https://your-domain.example/" /><meta property="og:image" content="https://your-domain.example/assets/social/tidepin-social.png" /><p>Keep me &amp; my text</p>');
     expect(filled).not.toContain('__PUBLIC_BASE_URL__');
     expect(SOCIAL_DESCRIPTION).toContain('NOAA CO-OPS');
-    expect(SOCIAL_DESCRIPTION).toContain('Not for navigation.');
+    expect(SOCIAL_DESCRIPTION).not.toMatch(/not for navigation/i);
   });
 });

@@ -18,7 +18,7 @@ describe('social sharing artwork', () => {
     expect(embeddedLogo).not.toBeNull();
     expect(Buffer.from(embeddedLogo![1]!, 'base64')).toEqual(originalLogo);
     expect(source).toContain('Tide predictions, at a glance.');
-    expect(source).toContain('Not for navigation.');
+    expect(source).not.toMatch(/not for navigation/i);
     expect(source).not.toMatch(/(?:href|src)="https?:/);
   });
 });

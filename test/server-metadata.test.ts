@@ -45,7 +45,8 @@ describe('server-rendered sharing metadata', () => {
         expect(html).toContain('<meta property="og:image:width" content="1200"');
         expect(html).toContain('<meta property="og:image:height" content="630"');
         expect(html).toContain(`<meta property="og:image:alt" content="${SOCIAL_IMAGE_ALT}"`);
-        expect(html).toContain('Not for navigation.');
+        expect(html.match(/not for navigation/gi)).toHaveLength(1);
+        expect(html.split('</head>')[0]).not.toMatch(/not for navigation/i);
         expect(html).toContain('rel="icon" href="/favicon.ico"');
         expect(html).toContain('class="footer-credit"');
         expect(html).toContain('href="https://www.hmeyer.com"');
