@@ -63,6 +63,13 @@
   }
 }
 
+@media (max-width: 480px) and (max-height: 640px) {
+  .display-page[data-display-state="start"] {
+    /* Leave room for wrapped credits without shrinking the artwork or primary action. */
+    padding-block: var(--space-4);
+  }
+}
+
 .start-message {
   min-height: 1.4em;
   max-width: 80vw;
