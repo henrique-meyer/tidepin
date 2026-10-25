@@ -1,4 +1,4 @@
-import { locationLabel, type DisplayState } from './display-controller.js';
+import { locationLabel, START_MESSAGES, type DisplayState } from './display-controller.js';
 
 export { START_MESSAGES } from './display-controller.js';
 
@@ -47,6 +47,7 @@ export function mountStartScreen(root: HTMLElement, actions: StartScreenActions)
   return {
     update(state: DisplayState): void {
       section.hidden = state.screen !== 'start';
+      section.classList.toggle('start-screen--ended', state.message === START_MESSAGES.sessionEnded);
       start.textContent = state.location ? 'Start display' : 'Set location';
       message.textContent = state.message || (state.location ? locationLabel(state.location) : '');
       current.disabled = state.findingLocation;

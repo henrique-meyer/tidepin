@@ -68,6 +68,11 @@
     /* Leave room for wrapped credits without shrinking the artwork or primary action. */
     padding-block: var(--space-4);
   }
+
+  .start-screen--ended {
+    /* The longer expiry message can wrap further across system fonts. */
+    gap: var(--space-2);
+  }
 }
 
 .start-message {
